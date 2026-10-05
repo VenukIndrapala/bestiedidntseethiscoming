@@ -5,20 +5,16 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <title>Realistic Interactive Globe - Responsive</title>
+  <title>Realistic Interactive Globe</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
-    html,
-    body {
+    html, body {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
-      min-height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -26,18 +22,12 @@
       color: #fff;
       font-family: Lato, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       overscroll-behavior: none;
-    }
-
-    body {
       touch-action: none;
     }
 
     .world {
-      position: fixed;
+      position: absolute;
       inset: 0;
-      width: 100vw;
-      height: 100dvh;
-      min-height: 100%;
       overflow: hidden;
       cursor: grab;
       touch-action: none;
@@ -46,95 +36,70 @@
       -webkit-touch-callout: none;
       background: #000;
     }
+    .world.dragging { cursor: grabbing; }
 
-    .world.dragging {
-      cursor: grabbing;
-    }
-
-    /*
-      The background is deliberately kept as a single composited layer.
-      It no longer participates in the globe's expensive geometry updates.
-    */
+    /* Same as reference: fills the screen, scaled slightly on zoom. */
     .world-bg {
       position: absolute;
-      inset: -4%;
-      width: 108%;
-      height: 108%;
-      background-position: center;
+      inset: 0;
+      background-position: 50% 50%;
       background-repeat: no-repeat;
       background-size: cover;
       pointer-events: none;
-      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-      transform-origin: center center;
+      transform: scale3d(1, 1, 1);
+      transform-origin: 50% 50%;
       will-change: transform;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
     }
 
-    /*
-      A single canvas replaces the previous 512 independently transformed
-      texture tiles. This is the main performance improvement.
-    */
+    /* White disc behind the globe: fills the 5% gap at both poles. */
+    .world-globe-pole {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 530px;
+      height: 530px;
+      margin: -265px 0 0 -265px;
+      border-radius: 50%;
+      background: #fff;
+      pointer-events: none;
+      transform: scale(1);
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
     #globeCanvas {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 536px;
-      height: 536px;
-      transform: translate3d(-50%, -50%, 0) scale3d(1, 1, 1);
+      width: 580px;
+      height: 580px;
+      transform: translate3d(-50%, -50%, 0);
       display: block;
       pointer-events: none;
-      will-change: transform;
-      contain: strict;
-      aspect-ratio: 1 / 1;
-      border-radius: 50%;
     }
 
+    /*
+      Same box and offsets as the reference (730 x 715, margin -368 / -350).
+      transform-origin is the globe centre inside that box, so scaling
+      keeps the halo exactly aligned with the globe at every zoom level.
+    */
     .world-globe-halo {
       position: absolute;
       left: 50%;
       top: 50%;
-
-      /*
-        Native image is 730 x 715. The width is driven by the
-        globe's computed size and the image keeps its intrinsic
-        aspect ratio automatically.
-      */
       width: 730px;
-      height: auto;
-
-      margin: 0;
-
+      height: 715px;
+      margin-left: -368px;
+      margin-top: -350px;
       display: block;
       pointer-events: none;
       user-select: none;
       -webkit-user-select: none;
-
-      object-fit: contain;
-      object-position: center;
-
-      /*
-        The JS uses the exact same uniform scale as the globe.
-        This prevents portrait phones from changing the halo's
-        proportions.
-      */
-      transform:
-        translate3d(-50%, -50%, 0)
-        scale3d(1, 1, 1);
-      transform-origin: center center;
-
-      opacity: 0.9;
-
+      transform: scale(1);
+      transform-origin: 368px 350px;
       will-change: transform;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-
-      contain: layout paint;
     }
-
-    .world-globe-halo[hidden] {
-      display: none;
-    }
+    .world-globe-halo[hidden] { display: none; }
 
     .hint {
       position: absolute;
@@ -147,14 +112,13 @@
       color: rgba(255, 255, 255, 0.55);
       pointer-events: none;
       z-index: 20;
-      padding-bottom: env(safe-area-inset-bottom);
     }
 
     .message {
       position: absolute;
       left: 50%;
       top: 50%;
-      transform: translate3d(-50%, -50%, 0);
+      transform: translate(-50%, -50%);
       width: min(80%, 420px);
       padding: 16px 20px;
       background: rgba(0, 0, 0, 0.88);
@@ -165,51 +129,13 @@
       text-align: center;
       z-index: 100;
     }
-
-    .message[hidden] {
-      display: none;
-    }
+    .message[hidden] { display: none; }
 
     @media (max-width: 600px) {
-      /*
-        No independent canvas/halo dimensions here.
-        JavaScript calculates one square globe size from the
-        shortest visible viewport side, then scales the halo
-        from that same size.
-      */
-      .hint {
-        bottom: max(12px, env(safe-area-inset-bottom));
-        font-size: 10px;
-        padding-inline: 12px;
-      }
+      .hint { font-size: 10px; padding-inline: 12px; }
     }
-
     @media (max-width: 380px) {
-      .hint {
-        font-size: 9px;
-      }
-    }
-
-    @media (orientation: landscape) and (max-height: 600px) {
-      .hint {
-        font-size: 9px;
-      }
-    }
-
-      .world-globe-halo {
-        width: min(98vh, 98vw);
-        height: min(96vh, 96vw);
-        margin-left: calc(-1 * min(49vh, 49vw));
-        margin-top: calc(-1 * min(48vh, 48vw));
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .world-bg,
-      #globeCanvas,
-      .world-globe-halo {
-        will-change: auto;
-      }
+      .hint { font-size: 9px; }
     }
   </style>
 </head>
@@ -217,1223 +143,558 @@
 <body>
   <div class="world" id="world">
     <div class="world-bg" id="worldBg"></div>
-
+    <div class="world-globe-pole" id="globePole"></div>
     <canvas id="globeCanvas" aria-label="Interactive globe"></canvas>
-
-    <img
-      class="world-globe-halo"
-      id="globeHalo"
-      src="assets/globe_halo.png"
-      alt=""
-      aria-hidden="true"
-      draggable="false"
-    >
+    <img class="world-globe-halo" id="globeHalo" alt="" aria-hidden="true" draggable="false" hidden>
   </div>
 
-  <div class="hint">Drag to rotate &middot; Scroll to zoom</div>
-
+  <div class="hint">Drag to rotate &middot; Scroll or pinch to zoom</div>
   <div class="message" id="message" hidden></div>
 
   <script>
-    (() => {
-      "use strict";
+  (() => {
+    "use strict";
 
-      /* =========================================================
-         LOCAL ASSETS
-         ========================================================= */
+    const SOURCES = {
+      bg: "assets/globe_bg.jpg",
+      diffuse: "assets/globe_diffuse.jpg",
+      halo: "assets/globe_halo.png"
+    };
 
-      const SOURCES = {
-        bg: "assets/globe_bg.jpg",
-        diffuse: "assets/globe_diffuse.jpg",
-        halo: "assets/globe_halo.png"
-      };
+    const config = {
+      lat: 0,
+      lng: 0,
+      zoom: 0,                 // current (smoothed) zoom, 0..1
+      autoSpin: true,
+      isHaloVisible: true,
+      isPoleVisible: true,
+      spinDegreesPerSecond: 12, // reference: 0.2 deg per frame at 60 fps
+      maxDpr: 2,
+      maxBufferPx: 2048
+    };
 
-      /* =========================================================
-         CONFIGURATION
-         ========================================================= */
+    /* ---- Constants taken from the reference ---- */
+    const BASE_GLOBE_SIZE = 536;     // globe diameter in px
+    const PERSPECTIVE = (BASE_GLOBE_SIZE / 2) / 4000; // offset = 1 + z / 4000 (z in px)
+    const POLE_GAP = 0.05;           // v = 0.05 .. 0.95 of the sphere
+    const SEG_X = 72;
+    const SEG_Y = 36;
+    const EXTENT = 1.08;             // canvas half-size in globe radii (small safety margin)
 
-      const config = {
-        lat: 0,
-        lng: 0,
-        zoom: 0,
-        autoSpin: true,
-        isHaloVisible: true,
+    /* ---- DOM ---- */
+    const world = document.getElementById("world");
+    const worldBg = document.getElementById("worldBg");
+    const globePole = document.getElementById("globePole");
+    const canvas = document.getElementById("globeCanvas");
+    const globeHalo = document.getElementById("globeHalo");
+    const message = document.getElementById("message");
 
-        /*
-          A moderate mesh is enough because the GPU renders the
-          sphere continuously. It is intentionally much lighter
-          than the old 32 x 16 DOM-tile approach.
-        */
-        segmentsX: 64,
-        segmentsY: 32,
+    /* ---- State ---- */
+    let gl = null, program = null, texture = null;
+    let vertexBuffer = null, indexBuffer = null, indexCount = 0;
+    let uRotY, uRotX, uExtent, uTexture;
+    let glReady = false;
+    let isWebGL2 = false;
+    let diffuseImage = null;
 
-        /*
-          Maximum device pixel ratio prevents very high-DPI screens
-          from creating an unnecessarily large WebGL framebuffer.
-        */
-        maxDpr: 1.75,
+    let zoomTarget = 0;
+    let needsResize = true;
+    let lastFrameTime = performance.now();
+    let tween = null;
 
-        spinDegreesPerSecond: 12
-      };
+    let isPointerDown = false;
+    const pointers = new Map();
+    let dragX = 0, dragY = 0, dragLat = 0, dragLng = 0;
+    let pinchStartDist = 0, pinchStartZoom = 0;
 
-      const BASE_GLOBE_SIZE = 536;
+    /* ---- Helpers ---- */
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const clampLng = (l) => ((((l + 180) % 360) + 360) % 360) - 180;
+    const degToRad = (d) => d * Math.PI / 180;
+    const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+    const isPOT = (n) => (n & (n - 1)) === 0;
 
-      /* =========================================================
-         DOM
-         ========================================================= */
+    function showMessage(html) { message.innerHTML = html; message.hidden = false; }
+    function hideMessage() { message.hidden = true; }
 
-      const world = document.getElementById("world");
-      const worldBg = document.getElementById("worldBg");
-      const canvas = document.getElementById("globeCanvas");
-      const globeHalo = document.getElementById("globeHalo");
-      const message = document.getElementById("message");
+    /* ---- Shaders ----
+       The vertex shader repeats the reference's rotate() maths exactly:
+       rotate around Y, then X, then a weak depth scale of 1 + z/4000.
+       Screen y points down in the reference, so it is flipped for clip space.
+       Triangles are front-facing (CCW) only on the near side, so back-face
+       culling hides the far side just like the reference does. */
+    const vertexShaderSource = `
+      attribute vec3 aPosition;
+      attribute vec2 aUv;
+      uniform vec2 uRotY;   // sin, cos of rY
+      uniform vec2 uRotX;   // sin, cos of -rX
+      uniform float uExtent;
+      varying vec2 vUv;
 
-      /* =========================================================
-         STATE
-         ========================================================= */
-
-      let gl = null;
-      let program = null;
-      let texture = null;
-      let vertexBuffer = null;
-      let indexBuffer = null;
-      let indexCount = 0;
-
-      let aPosition = -1;
-      let aUv = -1;
-      let uProjection = null;
-      let uModelView = null;
-      let uTexture = null;
-
-      let lastFrameTime = performance.now();
-      let resizeQueued = false;
-
-      let isPointerDown = false;
-      let activePointerId = null;
-      let dragX = 0;
-      let dragY = 0;
-      let dragLat = 0;
-      let dragLng = 0;
-
-      let activeTween = null;
-
-      /* =========================================================
-         HELPERS
-         ========================================================= */
-
-      function clamp(value, min, max) {
-        return Math.max(min, Math.min(max, value));
+      void main() {
+        vUv = aUv;
+        float x0 = aPosition.x * uRotY.y - aPosition.z * uRotY.x;
+        float z0 = aPosition.z * uRotY.y + aPosition.x * uRotY.x;
+        float y0 = aPosition.y * uRotX.y - z0 * uRotX.x;
+        z0 = z0 * uRotX.y + aPosition.y * uRotX.x;
+        float k = 1.0 + z0 * ${PERSPECTIVE.toFixed(6)};
+        gl_Position = vec4(x0 * k / uExtent, -y0 * k / uExtent, 0.0, 1.0);
       }
+    `;
 
-      function clampLng(lng) {
-        return ((((lng + 180) % 360) + 360) % 360) - 180;
+    const fragmentShaderSource = `
+      #ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+      #else
+      precision mediump float;
+      #endif
+      uniform sampler2D uTexture;
+      varying vec2 vUv;
+      void main() {
+        gl_FragColor = texture2D(uTexture, vUv);
       }
+    `;
 
-      function degToRad(degrees) {
-        return degrees * Math.PI / 180;
+    /* ---- WebGL setup ---- */
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        const log = gl.getShaderInfoLog(s);
+        gl.deleteShader(s);
+        throw new Error("Shader compile failed: " + log);
       }
+      return s;
+    }
 
-      function showMessage(text) {
-        message.innerHTML = text;
-        message.hidden = false;
+    function createProgram() {
+      const vs = compile(gl.VERTEX_SHADER, vertexShaderSource);
+      const fs = compile(gl.FRAGMENT_SHADER, fragmentShaderSource);
+      const p = gl.createProgram();
+      gl.attachShader(p, vs);
+      gl.attachShader(p, fs);
+      gl.bindAttribLocation(p, 0, "aPosition");
+      gl.bindAttribLocation(p, 1, "aUv");
+      gl.linkProgram(p);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+        const log = gl.getProgramInfoLog(p);
+        gl.deleteProgram(p);
+        throw new Error("Program link failed: " + log);
       }
+      return p;
+    }
 
-      function hideMessage() {
-        message.hidden = true;
-      }
+    function createSphereMesh() {
+      const vertices = [];
+      const indices = [];
 
-      function easeInOutSine(t) {
-        return -(Math.cos(Math.PI * t) - 1) / 2;
-      }
+      for (let y = 0; y <= SEG_Y; y++) {
+        const v = y / SEG_Y;                                // texture v: full image height
+        const theta = (POLE_GAP + v * (1 - 2 * POLE_GAP)) * Math.PI; // geometry: 5%..95%
+        const sinT = Math.sin(theta), cosT = Math.cos(theta);
 
-      /* =========================================================
-         SHADERS
-         ========================================================= */
-
-      const vertexShaderSource = `
-        attribute vec3 aPosition;
-        attribute vec2 aUv;
-
-        uniform mat4 uProjection;
-        uniform mat4 uModelView;
-
-        varying vec2 vUv;
-
-        void main() {
-          vUv = aUv;
-          gl_Position = uProjection * uModelView * vec4(aPosition, 1.0);
+        for (let x = 0; x <= SEG_X; x++) {
+          const u = x / SEG_X;
+          const phi = u * Math.PI * 2;
+          vertices.push(
+            -Math.cos(phi) * sinT,
+            -cosT,
+            Math.sin(phi) * sinT,
+            u,
+            v
+          );
         }
-      `;
-
-      const fragmentShaderSource = `
-        precision mediump float;
-
-        uniform sampler2D uTexture;
-
-        varying vec2 vUv;
-
-        void main() {
-          gl_FragColor = texture2D(uTexture, vUv);
-        }
-      `;
-
-      /* =========================================================
-         WEBGL UTILITIES
-         ========================================================= */
-
-      function createShader(type, source) {
-        const shader = gl.createShader(type);
-
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          const error = gl.getShaderInfoLog(shader);
-          gl.deleteShader(shader);
-          throw new Error("Shader compilation failed: " + error);
-        }
-
-        return shader;
       }
 
-      function createProgram() {
-        const vertexShader = createShader(
-          gl.VERTEX_SHADER,
-          vertexShaderSource
-        );
-
-        const fragmentShader = createShader(
-          gl.FRAGMENT_SHADER,
-          fragmentShaderSource
-        );
-
-        const newProgram = gl.createProgram();
-
-        gl.attachShader(newProgram, vertexShader);
-        gl.attachShader(newProgram, fragmentShader);
-        gl.linkProgram(newProgram);
-
-        gl.deleteShader(vertexShader);
-        gl.deleteShader(fragmentShader);
-
-        if (!gl.getProgramParameter(newProgram, gl.LINK_STATUS)) {
-          const error = gl.getProgramInfoLog(newProgram);
-          gl.deleteProgram(newProgram);
-          throw new Error("Program linking failed: " + error);
+      const row = SEG_X + 1;
+      for (let y = 0; y < SEG_Y; y++) {
+        for (let x = 0; x < SEG_X; x++) {
+          const a = y * row + x, b = a + 1, c = a + row, d = c + 1;
+          indices.push(a, c, b, b, c, d);
         }
-
-        return newProgram;
       }
 
-      function createSphereMesh() {
-        const vertices = [];
-        const indices = [];
+      vertexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-        const sx = config.segmentsX;
-        const sy = config.segmentsY;
+      indexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+      indexCount = indices.length;
+    }
 
-        /*
-          The texture is equirectangular:
-          U = longitude
-          V = latitude
+    function createTexture(image) {
+      texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
 
-          A small overlap at the seam is not required because the
-          GPU samples the original texture directly.
-        */
-        for (let y = 0; y <= sy; y++) {
-          const v = y / sy;
-          const theta = v * Math.PI;
+      /* The mesh duplicates the seam column, so clamping is safe and also
+         works for non power-of-two textures on WebGL 1. */
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-          const sinTheta = Math.sin(theta);
-          const cosTheta = Math.cos(theta);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
-          for (let x = 0; x <= sx; x++) {
-            const u = x / sx;
-            const phi = u * Math.PI * 2;
-
-            const sinPhi = Math.sin(phi);
-            const cosPhi = Math.cos(phi);
-
-            const px = -cosPhi * sinTheta;
-            const py = -cosTheta;
-            const pz = sinPhi * sinTheta;
-
-            vertices.push(
-              px,
-              py,
-              pz,
-              u,
-              v
-            );
-          }
-        }
-
-        const row = sx + 1;
-
-        for (let y = 0; y < sy; y++) {
-          for (let x = 0; x < sx; x++) {
-            const a = y * row + x;
-            const b = a + 1;
-            const c = a + row;
-            const d = c + 1;
-
-            indices.push(a, c, b);
-            indices.push(b, c, d);
-          }
-        }
-
-        const vertexData = new Float32Array(vertices);
-        const indexData = new Uint16Array(indices);
-
-        vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-        gl.bufferData(
-          gl.ARRAY_BUFFER,
-          vertexData,
-          gl.STATIC_DRAW
-        );
-
-        indexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-        gl.bufferData(
-          gl.ELEMENT_ARRAY_BUFFER,
-          indexData,
-          gl.STATIC_DRAW
-        );
-
-        indexCount = indexData.length;
-      }
-
-      function createTexture(image) {
-        texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-        gl.texParameteri(
-          gl.TEXTURE_2D,
-          gl.TEXTURE_WRAP_S,
-          gl.REPEAT
-        );
-
-        gl.texParameteri(
-          gl.TEXTURE_2D,
-          gl.TEXTURE_WRAP_T,
-          gl.CLAMP_TO_EDGE
-        );
-
-        gl.texParameteri(
-          gl.TEXTURE_2D,
-          gl.TEXTURE_MIN_FILTER,
-          gl.LINEAR_MIPMAP_LINEAR
-        );
-
-        gl.texParameteri(
-          gl.TEXTURE_2D,
-          gl.TEXTURE_MAG_FILTER,
-          gl.LINEAR
-        );
-
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0,
-          gl.RGBA,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          image
-        );
-
+      const canMip = isWebGL2 || (isPOT(image.naturalWidth) && isPOT(image.naturalHeight));
+      if (canMip) {
         gl.generateMipmap(gl.TEXTURE_2D);
-
-        gl.bindTexture(gl.TEXTURE_2D, null);
-      }
-
-      /* =========================================================
-         MATRIX FUNCTIONS
-         ========================================================= */
-
-      function identityMatrix() {
-        return new Float32Array([
-          1, 0, 0, 0,
-          0, 1, 0, 0,
-          0, 0, 1, 0,
-          0, 0, 0, 1
-        ]);
-      }
-
-      function multiplyMatrices(a, b) {
-        const out = new Float32Array(16);
-
-        for (let column = 0; column < 4; column++) {
-          for (let row = 0; row < 4; row++) {
-            out[column * 4 + row] =
-              a[0 * 4 + row] * b[column * 4 + 0] +
-              a[1 * 4 + row] * b[column * 4 + 1] +
-              a[2 * 4 + row] * b[column * 4 + 2] +
-              a[3 * 4 + row] * b[column * 4 + 3];
-          }
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        const ext = gl.getExtension("EXT_texture_filter_anisotropic");
+        if (ext) {
+          const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+          gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4, max));
         }
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+    }
 
-        return out;
+    function setupGL(image) {
+      program = createProgram();
+      gl.useProgram(program);
+
+      uRotY = gl.getUniformLocation(program, "uRotY");
+      uRotX = gl.getUniformLocation(program, "uRotX");
+      uExtent = gl.getUniformLocation(program, "uExtent");
+      uTexture = gl.getUniformLocation(program, "uTexture");
+
+      createSphereMesh();
+      createTexture(image);
+
+      gl.disable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.BACK);
+      gl.frontFace(gl.CCW);
+      gl.clearColor(0, 0, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.uniform1i(uTexture, 0);
+      gl.uniform1f(uExtent, EXTENT);
+    }
+
+    function initialiseWebGL(image) {
+      const opts = {
+        alpha: true,
+        antialias: true,
+        depth: false,
+        stencil: false,
+        premultipliedAlpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: "high-performance"
+      };
+
+      gl = canvas.getContext("webgl2", opts);
+      isWebGL2 = !!gl;
+      if (!gl) {
+        gl = canvas.getContext("webgl", opts) || canvas.getContext("experimental-webgl", opts);
+      }
+      if (!gl) throw new Error("WebGL is not available in this browser.");
+
+      setupGL(image);
+      glReady = true;
+    }
+
+    /* ---- Responsive sizing ---- */
+    function getViewportSize() {
+      const vv = window.visualViewport;
+      return {
+        width: vv && vv.width ? vv.width : window.innerWidth,
+        height: vv && vv.height ? vv.height : window.innerHeight
+      };
+    }
+
+    /* Fit factor: 1.0 on laptops (identical to the reference 536 px globe),
+       smaller on phones so the globe and halo stay fully on screen. */
+    function getFitScale() {
+      const { width, height } = getViewportSize();
+      const shortest = Math.min(width, height);
+      const isMobile = Math.max(width, height) <= 600;
+      const ratio = isMobile ? 0.74 : 0.78;
+      const size = clamp(shortest * ratio, isMobile ? 170 : 295, isMobile ? 460 : BASE_GLOBE_SIZE);
+      return size / BASE_GLOBE_SIZE;
+    }
+
+    function getTotalScale() {
+      /* Reference: ratio = 1 + zoom^1.5 * 3 */
+      return getFitScale() * (1 + Math.pow(config.zoom, 1.5) * 3);
+    }
+
+    function resizeCanvas() {
+      const scale = getTotalScale();
+      const cssSize = BASE_GLOBE_SIZE * scale * EXTENT;
+      const dpr = Math.min(window.devicePixelRatio || 1, config.maxDpr);
+
+      /* Quantised buffer size avoids reallocating the framebuffer every frame
+         while zooming; the cap keeps phones within their GPU limits. */
+      let px = Math.ceil((cssSize * dpr) / 32) * 32;
+      px = clamp(px, 64, config.maxBufferPx);
+
+      if (canvas.width !== px || canvas.height !== px) {
+        canvas.width = px;
+        canvas.height = px;
+        gl.viewport(0, 0, px, px);
       }
 
-      function perspectiveMatrix(
-        fovy,
-        aspect,
-        near,
-        far
-      ) {
-        const f = 1 / Math.tan(fovy / 2);
-        const nf = 1 / (near - far);
+      canvas.style.width = cssSize + "px";
+      canvas.style.height = cssSize + "px";
 
-        return new Float32Array([
-          f / aspect, 0, 0, 0,
-          0, f, 0, 0,
-          0, 0, (far + near) * nf, -1,
-          0, 0, (2 * far * near) * nf, 0
-        ]);
+      const t = "scale(" + scale + ")";
+      globeHalo.style.transform = t;
+      globePole.style.transform = t;
+
+      /* Reference: background ratio = 1 + zoom^3 * 0.3 */
+      const bg = 1 + Math.pow(config.zoom, 3) * 0.3;
+      worldBg.style.transform = "scale3d(" + bg + "," + bg + ",1)";
+    }
+
+    /* ---- Render ---- */
+    function render(dt) {
+      if (config.autoSpin && !isPointerDown && !tween) {
+        config.lng = clampLng(config.lng - config.spinDegreesPerSecond * dt);
       }
 
-      function translationMatrix(z) {
-        const matrix = identityMatrix();
-        matrix[14] = z;
-        return matrix;
+      globeHalo.style.display = config.isHaloVisible && !globeHalo.hidden ? "block" : "none";
+      globePole.style.display = config.isPoleVisible ? "block" : "none";
+
+      const rY = degToRad(clampLng(config.lng) - 270);
+      const rX = degToRad(config.lat);
+
+      gl.useProgram(program);
+      gl.uniform2f(uRotY, Math.sin(rY), Math.cos(rY));
+      gl.uniform2f(uRotX, Math.sin(-rX), Math.cos(-rX));
+
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+    }
+
+    /* ---- Animation loop ---- */
+    function updateTween(now) {
+      if (!tween) return;
+      const p = tween.duration <= 0 ? 1 : clamp((now - tween.start) / tween.duration, 0, 1);
+      const e = easeInOutSine(p);
+      config.lat = tween.lat + tween.dLat * e;
+      config.lng = clampLng(tween.lng + tween.dLng * e);
+      if (p >= 1) {
+        if (tween.zoomTo !== null) zoomTarget = tween.zoomTo;
+        tween = null;
       }
+    }
 
-      function rotationX(angle) {
-        const c = Math.cos(angle);
-        const s = Math.sin(angle);
+    function updateZoom(dt) {
+      const diff = zoomTarget - config.zoom;
+      if (diff === 0) return;
+      /* Frame-rate independent easing gives smooth wheel and pinch zoom. */
+      config.zoom += diff * (1 - Math.exp(-dt * 14));
+      if (Math.abs(zoomTarget - config.zoom) < 0.0004) config.zoom = zoomTarget;
+      needsResize = true;
+    }
 
-        return new Float32Array([
-          1, 0, 0, 0,
-          0, c, s, 0,
-          0, -s, c, 0,
-          0, 0, 0, 1
-        ]);
-      }
+    function frame(now) {
+      const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = now;
 
-      function rotationY(angle) {
-        const c = Math.cos(angle);
-        const s = Math.sin(angle);
+      updateTween(now);
+      updateZoom(dt);
 
-        return new Float32Array([
-          c, 0, -s, 0,
-          0, 1, 0, 0,
-          s, 0, c, 0,
-          0, 0, 0, 1
-        ]);
-      }
-
-      function rotationZ(angle) {
-        const c = Math.cos(angle);
-        const s = Math.sin(angle);
-
-        return new Float32Array([
-          c, s, 0, 0,
-          -s, c, 0, 0,
-          0, 0, 1, 0,
-          0, 0, 0, 1
-        ]);
-      }
-
-      /* =========================================================
-         WEBGL INITIALISATION
-         ========================================================= */
-
-      function initialiseWebGL(image) {
-        gl =
-          canvas.getContext("webgl", {
-            alpha: true,
-            antialias: true,
-            depth: true,
-            stencil: false,
-            preserveDrawingBuffer: false,
-            powerPreference: "high-performance"
-          }) ||
-          canvas.getContext("experimental-webgl");
-
-        if (!gl) {
-          throw new Error(
-            "WebGL is not available in this browser."
-          );
-        }
-
-        program = createProgram();
-
-        gl.useProgram(program);
-
-        aPosition =
-          gl.getAttribLocation(program, "aPosition");
-
-        aUv =
-          gl.getAttribLocation(program, "aUv");
-
-        uProjection =
-          gl.getUniformLocation(program, "uProjection");
-
-        uModelView =
-          gl.getUniformLocation(program, "uModelView");
-
-        uTexture =
-          gl.getUniformLocation(program, "uTexture");
-
-        createSphereMesh();
-        createTexture(image);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
-
-        gl.clearColor(0, 0, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
-        gl.enableVertexAttribArray(aPosition);
-        gl.vertexAttribPointer(
-          aPosition,
-          3,
-          gl.FLOAT,
-          false,
-          20,
-          0
-        );
-
-        gl.enableVertexAttribArray(aUv);
-        gl.vertexAttribPointer(
-          aUv,
-          2,
-          gl.FLOAT,
-          false,
-          20,
-          12
-        );
-
-        gl.bindBuffer(
-          gl.ELEMENT_ARRAY_BUFFER,
-          indexBuffer
-        );
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.uniform1i(uTexture, 0);
-      }
-
-      /* =========================================================
-         RESPONSIVE SIZING
-         ========================================================= */
-
-      function getViewportSize() {
-        /*
-          visualViewport is useful on mobile because browser
-          controls can temporarily change the visible height.
-          Fall back to innerWidth/innerHeight everywhere else.
-        */
-        const vv = window.visualViewport;
-
-        const width =
-          vv && vv.width
-            ? vv.width
-            : window.innerWidth;
-
-        const height =
-          vv && vv.height
-            ? vv.height
-            : window.innerHeight;
-
-        return {
-          width,
-          height
-        };
-      }
-
-      function getResponsiveScale() {
-        const viewport =
-          getViewportSize();
-
-        const width = viewport.width;
-        const height = viewport.height;
-
-        /*
-          The globe must always remain a perfect circle.
-          Its diameter is based only on the shortest visible
-          side of the device.
-        */
-        const shortestSide =
-          Math.min(width, height);
-
-        const isMobile =
-          Math.max(width, height) <= 600;
-
-        /*
-          74% on phones gives enough breathing room for the
-          halo and avoids clipping on narrow portrait displays.
-        */
-        const ratio =
-          isMobile ? 0.74 : 0.78;
-
-        const available =
-          shortestSide * ratio;
-
-        /*
-          Remove the old hard minimum on phones. A hard
-          minimum can be larger than a small phone's usable
-          width and therefore cause cropping.
-        */
-        const minimum =
-          isMobile
-            ? 170
-            : 295;
-
-        const maximum =
-          isMobile
-            ? 460
-            : 536;
-
-        const size =
-          clamp(
-            available,
-            minimum,
-            maximum
-          );
-
-        return size / BASE_GLOBE_SIZE;
-      }
-
-      function getGlobeCssSize() {
-        const responsiveScale =
-          getResponsiveScale();
-
-        const zoomPower =
-          Math.pow(config.zoom, 1.5);
-
-        const globeZoom =
-          1 + zoomPower * 3;
-
-        return (
-          BASE_GLOBE_SIZE *
-          responsiveScale *
-          globeZoom
-        );
-      }
-
-      function resizeCanvas() {
-        const dpr = Math.min(
-          window.devicePixelRatio || 1,
-          config.maxDpr
-        );
-
-        /*
-          The WebGL drawing surface is always square because
-          it represents a spherical object.
-        */
-        const cssSize =
-          getGlobeCssSize();
-
-        const pixelSize =
-          Math.max(
-            1,
-            Math.round(cssSize * dpr)
-          );
-
-        if (
-          canvas.width !== pixelSize ||
-          canvas.height !== pixelSize
-        ) {
-          canvas.width = pixelSize;
-          canvas.height = pixelSize;
-        }
-
-        canvas.style.width =
-          cssSize + "px";
-
-        canvas.style.height =
-          cssSize + "px";
-
-        /*
-          The halo is kept at its native 730 x 715 ratio and
-          scaled uniformly by the same factor as the globe.
-          At the base size:
-              globe = 536 px
-              halo  = 730 x 715 px
-        */
-        const globeScale =
-          cssSize / BASE_GLOBE_SIZE;
-
-        globeHalo.style.transform =
-          "translate3d(-50%, -50%, 0) " +
-          "scale3d(" +
-          globeScale +
-          "," +
-          globeScale +
-          ",1)";
-
-        gl.viewport(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-      }
-
-      function scheduleResize() {
-        if (resizeQueued) return;
-
-        resizeQueued = true;
-
-        requestAnimationFrame(() => {
-          resizeQueued = false;
+      if (glReady) {
+        if (needsResize) {
+          needsResize = false;
           resizeCanvas();
-        });
-      }
-
-      /* =========================================================
-         RENDER
-         ========================================================= */
-
-      function render(deltaSeconds) {
-        if (!gl || !program) return;
-
-        /*
-          Do not resize the WebGL framebuffer here.
-          Resizing is handled by scheduleResize()/resizeCanvas()
-          only when the viewport or zoom changes. This avoids
-          expensive mobile framebuffer reallocations every frame.
-
-          Time-based rotation makes the animation independent
-          of monitor refresh rate. A 60 Hz and 120 Hz display
-          therefore get the same actual globe speed.
-        */
-        if (
-          config.autoSpin &&
-          !isPointerDown &&
-          !activeTween
-        ) {
-          config.lng =
-            clampLng(
-              config.lng -
-              config.spinDegreesPerSecond *
-              deltaSeconds
-            );
         }
+        render(dt);
+      }
+      requestAnimationFrame(frame);
+    }
 
-        const bgZoom =
-          1 +
-          Math.pow(config.zoom, 3) * 0.3;
+    /* ---- Public navigation helper ---- */
+    function goTo(lat, lng, zoomTo) {
+      const targetLng = clampLng(lng);
+      let dLng = targetLng - config.lng;
+      if (dLng > 180) dLng -= 360;
+      if (dLng < -180) dLng += 360;
+      const dLat = lat - config.lat;
+      const distance = Math.sqrt(dLat * dLat + dLng * dLng);
 
-        worldBg.style.transform =
-          "translate3d(0,0,0) " +
-          "scale3d(" +
-          bgZoom +
-          "," +
-          bgZoom +
-          ",1)";
+      tween = {
+        start: performance.now(),
+        duration: clamp(distance * 0.01, 0.2, 1.5) * 1000,
+        lat: config.lat,
+        lng: config.lng,
+        dLat,
+        dLng,
+        zoomTo: typeof zoomTo === "number" ? clamp(zoomTo, 0, 1) : null
+      };
+    }
 
-        globeHalo.style.display =
-          config.isHaloVisible ? "block" : "none";
+    /* ---- Pointer / touch ---- */
+    function beginDrag(x, y) {
+      dragX = x; dragY = y;
+      dragLat = config.lat; dragLng = config.lng;
+    }
 
-        /*
-          The drawing buffer is always square, matching the
-          physical globe. Therefore the projection must use
-          an aspect ratio of 1 rather than the phone's portrait
-          viewport ratio.
-        */
-        const aspect = 1;
+    function pinchDistance() {
+      const [a, b] = Array.from(pointers.values());
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
 
-        const projection =
-          perspectiveMatrix(
-            degToRad(38),
-            aspect,
-            0.1,
-            100
-          );
+    function onPointerDown(e) {
+      tween = null;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { world.setPointerCapture(e.pointerId); } catch (_) {}
 
-        /*
-          The camera is at z = 3.
-          The sphere has radius 1.
-        */
-        let modelView =
-          translationMatrix(-3.05);
-
-        /*
-          Match the orientation of the original globe.
-        */
-        const ry =
-          degToRad(
-            clampLng(config.lng) - 270
-          );
-
-        const rx =
-          degToRad(config.lat);
-
-        modelView =
-          multiplyMatrices(
-            modelView,
-            rotationZ(0)
-          );
-
-        modelView =
-          multiplyMatrices(
-            modelView,
-            rotationX(-rx)
-          );
-
-        modelView =
-          multiplyMatrices(
-            modelView,
-            rotationY(ry)
-          );
-
-        gl.clear(
-          gl.COLOR_BUFFER_BIT |
-          gl.DEPTH_BUFFER_BIT
-        );
-
-        gl.useProgram(program);
-
-        gl.uniformMatrix4fv(
-          uProjection,
-          false,
-          projection
-        );
-
-        gl.uniformMatrix4fv(
-          uModelView,
-          false,
-          modelView
-        );
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(
-          gl.TEXTURE_2D,
-          texture
-        );
-
-        gl.drawElements(
-          gl.TRIANGLES,
-          indexCount,
-          gl.UNSIGNED_SHORT,
-          0
-        );
+      if (pointers.size === 1) {
+        beginDrag(e.clientX, e.clientY);
+      } else if (pointers.size === 2) {
+        pinchStartDist = pinchDistance();
+        pinchStartZoom = zoomTarget;
       }
 
-      /* =========================================================
-         ANIMATION LOOP
-         ========================================================= */
+      isPointerDown = true;
+      world.classList.add("dragging");
+    }
 
-      function animationLoop(now) {
-        /*
-          Prevent a long browser pause/tab switch from causing
-          a huge rotation jump when rendering resumes.
-        */
-        const delta =
-          Math.min(
-            (now - lastFrameTime) / 1000,
-            0.05
-          );
+    function onPointerMove(e) {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+      p.x = e.clientX;
+      p.y = e.clientY;
 
-        lastFrameTime = now;
-
-        updateTween(now);
-
-        render(delta);
-
-        requestAnimationFrame(animationLoop);
+      if (pointers.size >= 2) {
+        const { width, height } = getViewportSize();
+        const span = Math.min(width, height) * 0.8;
+        zoomTarget = clamp(pinchStartZoom + (pinchDistance() - pinchStartDist) / span, 0, 1);
+        return;
       }
 
-      /* =========================================================
-         TWEENING
-         ========================================================= */
+      /* Same drag mapping as the reference: 0.5 degrees per pixel. */
+      config.lat = clamp(dragLat + (e.clientY - dragY) * 0.5, -90, 90);
+      config.lng = clampLng(dragLng - (e.clientX - dragX) * 0.5);
+    }
 
-      function cancelTween() {
-        activeTween = null;
+    function onPointerUp(e) {
+      if (!pointers.delete(e.pointerId)) return;
+
+      if (pointers.size === 1) {
+        const rest = pointers.values().next().value;
+        beginDrag(rest.x, rest.y);
       }
-
-      function tweenTo(
-        durationSeconds,
-        update,
-        done
-      ) {
-        const start =
-          performance.now();
-
-        const tweenState = {
-          cancelled: false
-        };
-
-        activeTween = tweenState;
-
-        function step(now) {
-          if (
-            tweenState.cancelled ||
-            activeTween !== tweenState
-          ) {
-            return;
-          }
-
-          const progress =
-            durationSeconds <= 0
-              ? 1
-              : clamp(
-                  (now - start) /
-                  (durationSeconds * 1000),
-                  0,
-                  1
-                );
-
-          update(
-            easeInOutSine(progress)
-          );
-
-          if (progress < 1) {
-            requestAnimationFrame(step);
-          } else {
-            activeTween = null;
-
-            if (done) done();
-          }
-        }
-
-        requestAnimationFrame(step);
-      }
-
-      function updateTween() {
-        /*
-          Tween work is driven by requestAnimationFrame itself.
-          This function intentionally remains empty; keeping the
-          animation in one RAF loop prevents multiple competing
-          animation loops.
-        */
-      }
-
-      function goTo(lat, lng) {
-        cancelTween();
-
-        const startLat = config.lat;
-        const startLng = config.lng;
-
-        const targetLng =
-          clampLng(lng);
-
-        let deltaLng =
-          targetLng - startLng;
-
-        if (deltaLng > 180) {
-          deltaLng -= 360;
-        }
-
-        if (deltaLng < -180) {
-          deltaLng += 360;
-        }
-
-        const deltaLat =
-          lat - startLat;
-
-        const distance =
-          Math.sqrt(
-            deltaLat * deltaLat +
-            deltaLng * deltaLng
-          );
-
-        const duration =
-          clamp(
-            distance * 0.01,
-            0.2,
-            1.5
-          );
-
-        tweenTo(
-          duration,
-          (e) => {
-            config.lat =
-              startLat +
-              deltaLat * e;
-
-            config.lng =
-              clampLng(
-                startLng +
-                deltaLng * e
-              );
-          }
-        );
-      }
-
-      /* =========================================================
-         POINTER / TOUCH
-         ========================================================= */
-
-      function onPointerDown(event) {
-        if (activeTween) {
-          cancelTween();
-        }
-
-        isPointerDown = true;
-        activePointerId = event.pointerId;
-
-        dragX = event.clientX;
-        dragY = event.clientY;
-
-        dragLat = config.lat;
-        dragLng = config.lng;
-
-        world.classList.add("dragging");
-
-        if (world.setPointerCapture) {
-          try {
-            world.setPointerCapture(
-              event.pointerId
-            );
-          } catch (_) {}
-        }
-      }
-
-      function onPointerMove(event) {
-        if (
-          !isPointerDown ||
-          event.pointerId !== activePointerId
-        ) {
-          return;
-        }
-
-        const dx =
-          event.clientX - dragX;
-
-        const dy =
-          event.clientY - dragY;
-
-        config.lat =
-          clamp(
-            dragLat + dy * 0.5,
-            -90,
-            90
-          );
-
-        config.lng =
-          clampLng(
-            dragLng - dx * 0.5
-          );
-      }
-
-      function onPointerUp(event) {
-        if (
-          activePointerId !== null &&
-          event &&
-          event.pointerId !== activePointerId
-        ) {
-          return;
-        }
-
+      if (pointers.size === 0) {
         isPointerDown = false;
-        activePointerId = null;
-
         world.classList.remove("dragging");
       }
+    }
 
-      function onWheel(event) {
-        event.preventDefault();
+    function onWheel(e) {
+      e.preventDefault();
+      /* deltaMode 1 = lines (some mice / Firefox); normalise to pixels. */
+      const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      zoomTarget = clamp(zoomTarget - delta * 0.001, 0, 1);
+    }
 
-        const nextZoom =
-          clamp(
-            config.zoom -
-            event.deltaY * 0.001,
-            0,
-            1
-          );
+    function onDoubleClick() {
+      zoomTarget = zoomTarget > 0.4 ? 0 : 0.55;
+    }
 
-        if (nextZoom !== config.zoom) {
-          config.zoom = nextZoom;
-          scheduleResize();
+    /* ---- Loading ---- */
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Could not load " + url));
+        img.src = url;
+      });
+    }
+
+    async function init() {
+      try {
+        hideMessage();
+
+        const [diffuse, bg, halo] = await Promise.all([
+          loadImage(SOURCES.diffuse),
+          loadImage(SOURCES.bg).catch(() => null),
+          loadImage(SOURCES.halo).catch(() => null)
+        ]);
+
+        diffuseImage = diffuse;
+
+        if (bg) worldBg.style.backgroundImage = 'url("' + SOURCES.bg + '")';
+        if (halo) {
+          globeHalo.src = SOURCES.halo;
+          globeHalo.hidden = false;
         }
-      }
 
-      function onDoubleClick() {
-        config.zoom =
-          config.zoom > 0.4
-            ? 0
-            : 0.55;
+        initialiseWebGL(diffuseImage);
+        resizeCanvas();
 
-        scheduleResize();
-      }
-
-      /* =========================================================
-         IMAGE LOADING
-         ========================================================= */
-
-      function loadImage(url) {
-        return new Promise(
-          (resolve, reject) => {
-            const image = new Image();
-
-            image.decoding = "async";
-
-            image.onload = () => {
-              resolve(image);
-            };
-
-            image.onerror = () => {
-              reject(
-                new Error(
-                  "Could not load " + url
-                )
-              );
-            };
-
-            image.src = url;
+        canvas.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          glReady = false;
+        });
+        canvas.addEventListener("webglcontextrestored", () => {
+          try {
+            setupGL(diffuseImage);
+            glReady = true;
+            canvas.width = 0; // force viewport refresh
+            needsResize = true;
+          } catch (err) {
+            console.error(err);
           }
+        });
+
+        world.addEventListener("dragstart", (e) => e.preventDefault());
+        world.addEventListener("pointerdown", onPointerDown);
+        world.addEventListener("pointermove", onPointerMove);
+        world.addEventListener("pointerup", onPointerUp);
+        world.addEventListener("pointercancel", onPointerUp);
+        world.addEventListener("lostpointercapture", onPointerUp);
+        world.addEventListener("wheel", onWheel, { passive: false });
+        world.addEventListener("dblclick", onDoubleClick);
+
+        const queueResize = () => { needsResize = true; };
+        window.addEventListener("resize", queueResize, { passive: true });
+        window.addEventListener("orientationchange", queueResize, { passive: true });
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", queueResize, { passive: true });
+        }
+
+        window.GlobeApp = {
+          config,
+          goTo,
+          setZoom: (z) => { zoomTarget = clamp(z, 0, 1); },
+          resize: queueResize
+        };
+
+        lastFrameTime = performance.now();
+        requestAnimationFrame(frame);
+      } catch (error) {
+        console.error(error);
+        showMessage(
+          "Could not initialise the globe.<br><br>" +
+          "Make sure the repository contains:<br><br>" +
+          "<code>assets/globe_diffuse.jpg</code><br>" +
+          "<code>assets/globe_bg.jpg</code><br>" +
+          "<code>assets/globe_halo.png</code> (optional)<br><br>" +
+          "Also make sure the browser supports WebGL."
         );
       }
+    }
 
-      /* =========================================================
-         INITIALISATION
-         ========================================================= */
-
-      async function init() {
-        try {
-          hideMessage();
-
-          const results =
-            await Promise.all([
-              loadImage(SOURCES.diffuse),
-              loadImage(SOURCES.bg).catch(
-                () => null
-              ),
-              loadImage(SOURCES.halo).catch(
-                () => null
-              )
-            ]);
-
-          const diffuseImage = results[0];
-          const bgImage = results[1];
-          const haloImage = results[2];
-
-          if (
-            diffuseImage.naturalWidth !== 2048 ||
-            diffuseImage.naturalHeight !== 1024
-          ) {
-            console.warn(
-              "Globe texture is " +
-              diffuseImage.naturalWidth +
-              " × " +
-              diffuseImage.naturalHeight +
-              ". Expected 2048 × 1024."
-            );
-          }
-
-          if (bgImage) {
-            worldBg.style.backgroundImage =
-              `url("${SOURCES.bg}")`;
-          }
-
-          if (haloImage) {
-            globeHalo.hidden = false;
-            globeHalo.src = SOURCES.halo;
-          } else {
-            globeHalo.hidden = true;
-          }
-
-          initialiseWebGL(diffuseImage);
-          resizeCanvas();
-
-          world.addEventListener(
-            "dragstart",
-            (event) => event.preventDefault()
-          );
-
-          world.addEventListener(
-            "pointerdown",
-            onPointerDown,
-            { passive: true }
-          );
-
-          world.addEventListener(
-            "pointermove",
-            onPointerMove,
-            { passive: true }
-          );
-
-          world.addEventListener(
-            "pointerup",
-            onPointerUp,
-            { passive: true }
-          );
-
-          world.addEventListener(
-            "pointercancel",
-            onPointerUp,
-            { passive: true }
-          );
-
-          world.addEventListener(
-            "lostpointercapture",
-            onPointerUp,
-            { passive: true }
-          );
-
-          world.addEventListener(
-            "wheel",
-            onWheel,
-            { passive: false }
-          );
-
-          world.addEventListener(
-            "dblclick",
-            onDoubleClick,
-            { passive: true }
-          );
-
-          window.addEventListener(
-            "resize",
-            scheduleResize,
-            { passive: true }
-          );
-
-          window.addEventListener(
-            "orientationchange",
-            scheduleResize,
-            { passive: true }
-          );
-
-          if (window.visualViewport) {
-            window.visualViewport.addEventListener(
-              "resize",
-              scheduleResize,
-              { passive: true }
-            );
-          }
-
-          /*
-            Public API retained for future use.
-          */
-          window.GlobeApp = {
-            config,
-            goTo,
-            resize: scheduleResize
-          };
-
-          lastFrameTime =
-            performance.now();
-
-          requestAnimationFrame(
-            animationLoop
-          );
-
-        } catch (error) {
-          console.error(error);
-
-          showMessage(
-            "Could not initialise the globe.<br><br>" +
-            "Make sure the repository contains:<br><br>" +
-            "<code>assets/globe_diffuse.jpg</code><br>" +
-            "<code>assets/globe_bg.jpg</code><br>" +
-            "<code>assets/globe_halo.png</code> (optional)<br><br>" +
-            "Also make sure the browser supports WebGL."
-          );
-        }
-      }
-
-      init();
-    })();
+    init();
+  })();
   </script>
 </body>
 </html>
