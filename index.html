@@ -1740,7 +1740,7 @@
       /* Projected size of the whole cube around its centre (measured from the
          scene's 3D transform): 305 px left, 269 right, 188 up, 202 down. */
       const BOX = { left: 305, right: 269, up: 188, down: 202 };
-      const MARGIN = 16;
+      const MARGIN = 0; // flush with the bottom-left corner
 
       let isOpen = false;
       let leaving = false;
@@ -1749,8 +1749,8 @@
         const { width, height } = getViewportSize();
         const boxWidth = BOX.left + BOX.right;
         const boxHeight = BOX.up + BOX.down;
-        const widthShare = width < 700 ? 0.6 : 0.3;
-        const scale = Math.min(0.6, (width * widthShare) / boxWidth, (height * 0.4) / boxHeight);
+        const widthShare = width < 700 ? 0.45 : 0.24;
+        const scale = Math.min(0.45, (width * widthShare) / boxWidth, (height * 0.32) / boxHeight);
 
         dock.style.left = "calc(env(safe-area-inset-left, 0px) + " + (MARGIN + BOX.left * scale) + "px)";
         dock.style.bottom = "calc(env(safe-area-inset-bottom, 0px) + " + (MARGIN + BOX.down * scale) + "px)";
