@@ -1,607 +1,2222 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Original globe concept credit: Edan Kwan -->
-    <title>Realistic Globe</title>
-    <style>
-html, body {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  font-family: 'Lato', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background-color: #000;
-  color: #fff;
-}
+<head>
+  <meta charset="UTF-8">
 
-.world {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
+  <meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1.0,
+             maximum-scale=1.0,
+             user-scalable=no,
+             viewport-fit=cover"
+  >
 
-.world.dragging {
-  cursor: grabbing;
-}
+  <meta name="theme-color" content="#000000">
 
-.world-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-position: 50% 50%;
-  background-size: cover;
-}
+  <title>Realistic Interactive Globe</title>
 
-.world-globe {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-}
+  <style>
+    /* =========================================================
+       PAGE
+       ========================================================= */
 
-.world-globe-pole {
-  position: absolute;
-  width: 530px;
-  height: 530px;
-  left: -265px;
-  top: -265px;
-  border-radius: 50%;
-  background-color: #0b2c5c;
-}
+    html,
+    body {
+      position: fixed;
+      inset: 0;
 
-.world-globe-doms-container {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-}
+      width: 100%;
+      height: 100%;
 
-.world-globe-halo {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 730px;
-  height: 715px;
-  margin-left: -368px;
-  margin-top: -350px;
-  background-size: 100% 100%;
-  pointer-events: none;
-}
+      margin: 0;
+      padding: 0;
 
-.hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 14px;
-  text-align: center;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.6);
-  pointer-events: none;
-}
+      overflow: hidden;
 
-.message {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  max-width: 80%;
-  padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid #ff5f5f;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.5;
-}
+      background: #000;
 
-.message[hidden] {
-  display: none;
-}
+      font-family:
+        'Lato',
+        system-ui,
+        -apple-system,
+        'Segoe UI',
+        Roboto,
+        sans-serif;
 
-</style>
-  </head>
-  <body>
-    <div class="world">
-      <div class="world-bg"></div>
-      <div class="world-globe">
-        <div class="world-globe-pole"></div>
-        <div class="world-globe-doms-container"></div>
-        <div class="world-globe-halo"></div>
-      </div>
+      color: #fff;
+
+      overscroll-behavior: none;
+    }
+
+    body {
+      touch-action: none;
+    }
+
+
+    /* =========================================================
+       MAIN WORLD
+       ========================================================= */
+
+    .world {
+      position: fixed;
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      overflow: hidden;
+
+      cursor: grab;
+
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .world.dragging {
+      cursor: grabbing;
+    }
+
+
+    /* =========================================================
+       BACKGROUND
+       ========================================================= */
+
+    .world-bg {
+      position: absolute;
+      inset: -5%;
+
+      width: 110%;
+      height: 110%;
+
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
+
+      pointer-events: none;
+
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+
+    /* =========================================================
+       GLOBE CONTAINER
+       ========================================================= */
+
+    .world-globe {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: 0;
+      height: 0;
+
+      transform-origin: center center;
+
+      will-change: transform;
+    }
+
+
+    /* =========================================================
+       DARK POLE / BASE
+       ========================================================= */
+
+    .world-globe-pole {
+      position: absolute;
+
+      width: 536px;
+      height: 536px;
+
+      left: -268px;
+      top: -268px;
+
+      border-radius: 50%;
+
+      background-color: #0b2c5c;
+
+      pointer-events: none;
+    }
+
+
+    /* =========================================================
+       GLOBE TEXTURE TILES
+       ========================================================= */
+
+    .world-globe-doms-container {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: 0;
+      height: 0;
+
+      transform-origin: center center;
+    }
+
+
+    /* =========================================================
+       ATMOSPHERE / HALO
+       ========================================================= */
+
+    .world-globe-halo {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: 730px;
+      height: 715px;
+
+      margin-left: -368px;
+      margin-top: -350px;
+
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 100% 100%;
+
+      pointer-events: none;
+
+      opacity: 0.9;
+    }
+
+
+    /* =========================================================
+       USER HINT
+       ========================================================= */
+
+    .hint {
+      position: absolute;
+
+      left: 0;
+      right: 0;
+      bottom: max(14px, env(safe-area-inset-bottom));
+
+      text-align: center;
+
+      font-size: 12px;
+      letter-spacing: 0.08em;
+
+      color: rgba(255, 255, 255, 0.55);
+
+      pointer-events: none;
+
+      z-index: 20;
+    }
+
+
+    /* =========================================================
+       ERROR MESSAGE
+       ========================================================= */
+
+    .message {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      width: min(80%, 420px);
+
+      box-sizing: border-box;
+
+      padding: 16px 20px;
+
+      background: rgba(0, 0, 0, 0.88);
+
+      border: 1px solid #ff5f5f;
+
+      border-radius: 8px;
+
+      font-size: 14px;
+      line-height: 1.5;
+
+      text-align: center;
+
+      z-index: 100;
+    }
+
+    .message[hidden] {
+      display: none;
+    }
+
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 600px) {
+
+      .hint {
+        bottom: max(12px, env(safe-area-inset-bottom));
+        font-size: 10px;
+      }
+
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <div class="world">
+
+    <div class="world-bg"></div>
+
+    <div class="world-globe">
+
+      <div class="world-globe-pole"></div>
+
+      <div class="world-globe-doms-container"></div>
+
+      <div class="world-globe-halo"></div>
+
     </div>
 
-    <div class="hint">Drag to rotate &middot; Scroll to zoom</div>
-    <div class="message" id="message" hidden></div>
+  </div>
 
-    <script>
-/*
- * PerspectiveTransform
- * Maps a rectangular DOM element onto an arbitrary quad using a CSS matrix3d.
- * API-compatible replacement for the old external helper used by the globe.
- *
- *   var pt = new PerspectiveTransform(element, width, height);
- *   pt.topLeft.x = ...; (same for topRight, bottomLeft, bottomRight)
- *   pt.hasError = pt.checkError();   // true when the quad faces away or is degenerate
- *   if (!pt.hasError) pt.calc();     // compute the matrix
- *   pt.update();                     // apply the matrix to the element
- */
-(function (global) {
-  var testStyle = document.createElement('div').style;
-  var transformStyleName = 'transform' in testStyle ? 'transform' : 'webkitTransform';
-  var transformOriginStyleName = transformStyleName + 'Origin';
 
-  function PerspectiveTransform(element, width, height) {
-    this.element = element;
-    this.style = element.style;
-    this.width = width;
-    this.height = height;
-    this.topLeft = { x: 0, y: 0 };
-    this.topRight = { x: 0, y: 0 };
-    this.bottomLeft = { x: 0, y: 0 };
-    this.bottomRight = { x: 0, y: 0 };
-    this.hasError = false;
-    this.matrix = '';
-  }
+  <div class="hint">
+    Drag to rotate &middot; Scroll to zoom
+  </div>
 
-  PerspectiveTransform.transformStyleName = transformStyleName;
-  PerspectiveTransform.transformOriginStyleName = transformOriginStyleName;
 
-  // Returns true when the quad should NOT be drawn (back-facing or degenerate).
-  PerspectiveTransform.prototype.checkError = function () {
-    var tl = this.topLeft, tr = this.topRight, bl = this.bottomLeft;
-    var cross = (tr.x - tl.x) * (bl.y - tl.y) - (tr.y - tl.y) * (bl.x - tl.x);
-    return !(cross > 0);
-  };
+  <div
+    class="message"
+    id="message"
+    hidden
+  ></div>
 
-  // Computes the matrix3d mapping the (0,0)-(w,h) rectangle onto the quad.
-  PerspectiveTransform.prototype.calc = function () {
-    var x0 = this.topLeft.x,     y0 = this.topLeft.y;
-    var x1 = this.topRight.x,    y1 = this.topRight.y;
-    var x2 = this.bottomRight.x, y2 = this.bottomRight.y;
-    var x3 = this.bottomLeft.x,  y3 = this.bottomLeft.y;
 
-    var dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
-    var dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+  <script>
+    /* =========================================================
+       PERSPECTIVE TRANSFORM
+       ========================================================= */
 
-    var a, b, c, d, e, f, g, h;
+    (function (global) {
 
-    if (Math.abs(dx3) < 1e-9 && Math.abs(dy3) < 1e-9) {
-      // Affine case
-      a = x1 - x0; b = x3 - x0; c = x0;
-      d = y1 - y0; e = y3 - y0; f = y0;
-      g = 0; h = 0;
-    } else {
-      var den = dx1 * dy2 - dx2 * dy1;
-      if (Math.abs(den) < 1e-12) {
-        this.hasError = true;
-        return;
-      }
-      g = (dx3 * dy2 - dx2 * dy3) / den;
-      h = (dx1 * dy3 - dx3 * dy1) / den;
-      a = x1 - x0 + g * x1;
-      b = x3 - x0 + h * x3;
-      c = x0;
-      d = y1 - y0 + g * y1;
-      e = y3 - y0 + h * y3;
-      f = y0;
-    }
+      var testStyle = document.createElement('div').style;
 
-    // Scale from the unit square to the element's pixel size
-    var w = this.width, hh = this.height;
-    this.matrix = 'matrix3d(' + [
-      a / w, d / w, 0, g / w,
-      b / hh, e / hh, 0, h / hh,
-      0, 0, 1, 0,
-      c, f, 0, 1
-    ].join(',') + ')';
-  };
+      var transformStyleName =
+        'transform' in testStyle
+          ? 'transform'
+          : 'webkitTransform';
 
-  PerspectiveTransform.prototype.update = function () {
-    this.style[transformStyleName] = this.matrix;
-  };
+      var transformOriginStyleName =
+        transformStyleName + 'Origin';
 
-  global.PerspectiveTransform = PerspectiveTransform;
-})(window);
 
-</script>
-    <script>
-/*
- * Realistic CSS Globe
- * Original concept credit: Edan Kwan
- * Cleaned up: no dat.GUI, no Stats, no TweenMax, all assets local.
- */
-(function () {
-  'use strict';
+      function PerspectiveTransform(element, width, height) {
 
-  // Local copies are tried first; the original hosted images are only a fallback.
-  var REMOTE = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/6043/';
-  var SOURCES = {
-    bg: ['assets/globe_bg.jpg', REMOTE + 'css_globe_bg.jpg'],
-    diffuse: ['assets/globe_diffuse.jpg', REMOTE + 'css_globe_diffuse.jpg'],
-    halo: ['assets/globe_halo.png', REMOTE + 'css_globe_halo.png']
-  };
-  var URLS = {};
+        this.element = element;
 
-  var config = {
-    lat: 0,
-    lng: 0,
-    segX: 14,
-    segY: 12,
-    isHaloVisible: true,
-    isPoleVisible: true,
-    autoSpin: true,
-    zoom: 0
-  };
+        this.style = element.style;
 
-  var globeDoms = [];
-  var vertices = [];
-  var world, worldBg, globe, globeContainer, globePole, globeHalo;
+        this.width = width;
+        this.height = height;
 
-  var pixelExpandOffset = 1.5;
-  var sinRX, sinRY, sinRZ, cosRX, cosRY, cosRZ;
-  var rX = 0, rY = 0, rZ = 0;
-  var dragX, dragY, dragLat, dragLng;
-  var isMouseDown = false;
-  var isTweening = false;
-  var activeTween = null;
-  var tick = 1;
+        this.topLeft = {
+          x: 0,
+          y: 0
+        };
 
-  var transformStyleName = PerspectiveTransform.transformStyleName;
+        this.topRight = {
+          x: 0,
+          y: 0
+        };
 
-  /* ---------- helpers ---------- */
+        this.bottomLeft = {
+          x: 0,
+          y: 0
+        };
 
-  function clamp(x, min, max) {
-    return x < min ? min : x > max ? max : x;
-  }
+        this.bottomRight = {
+          x: 0,
+          y: 0
+        };
 
-  function clampLng(lng) {
-    return ((((lng + 180) % 360) + 360) % 360) - 180;
-  }
+        this.hasError = false;
 
-  function easeInOutSine(t) {
-    return -(Math.cos(Math.PI * t) - 1) / 2;
-  }
-
-  function loadImage(url) {
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      img.onload = function () { resolve(url); };
-      img.onerror = function () { reject(url); };
-      img.src = url;
-    });
-  }
-
-  // Resolves with the first URL in the list that loads
-  function loadFirst(list) {
-    return list.reduce(function (p, url) {
-      return p.catch(function () { return loadImage(url); });
-    }, Promise.reject());
-  }
-
-  function showMessage(html) {
-    var el = document.getElementById('message');
-    el.innerHTML = html;
-    el.hidden = false;
-  }
-
-  /* ---------- tween ---------- */
-
-  function tween(durationSec, update, done) {
-    var start = performance.now();
-    var cancelled = false;
-    function step(now) {
-      if (cancelled) return;
-      var t = durationSec <= 0 ? 1 : Math.min((now - start) / (durationSec * 1000), 1);
-      update(easeInOutSine(t));
-      if (t < 1) {
-        requestAnimationFrame(step);
-      } else if (done) {
-        done();
-      }
-    }
-    requestAnimationFrame(step);
-    return { cancel: function () { cancelled = true; } };
-  }
-
-  function goTo(lat, lng) {
-    if (activeTween) activeTween.cancel();
-
-    var startLat = config.lat;
-    var startLng = config.lng;
-    var dLat = lat - startLat;
-    var dLng = clampLng(lng - startLng); // shortest way round
-    var roughDistance = Math.sqrt(dLat * dLat + dLng * dLng);
-    var startZoom = config.zoom;
-
-    isTweening = true;
-    activeTween = tween(Math.max(roughDistance * 0.01, 0.2), function (e) {
-      config.lat = startLat + dLat * e;
-      config.lng = clampLng(startLng + dLng * e);
-    }, function () {
-      activeTween = tween(1, function (e) {
-        config.zoom = startZoom + (1 - startZoom) * e;
-      }, function () {
-        isTweening = false;
-        activeTween = null;
-      });
-    });
-  }
-
-  /* ---------- globe construction ---------- */
-
-  function regenerateGlobe() {
-    var dom, domStyle, x, y;
-    globeDoms = [];
-    while ((dom = globeContainer.firstChild)) {
-      globeContainer.removeChild(dom);
-    }
-
-    var segX = config.segX;
-    var segY = config.segY;
-    var diffuseBg = 'url(' + URLS.diffuse + ')';
-    var segWidth = (1600 / segX) | 0;
-    var segHeight = (800 / segY) | 0;
-    var radius = 536 / 2;
-
-    var phiStart = 0;
-    var phiLength = Math.PI * 2;
-    var thetaStart = 0;
-    var thetaLength = Math.PI;
-
-    vertices = [];
-
-    for (y = 0; y <= segY; y++) {
-      var verticesRow = [];
-      for (x = 0; x <= segX; x++) {
-        var u = x / segX;
-        var v = 0.05 + (y / segY) * (1 - 0.1);
-        verticesRow.push({
-          x: -radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength),
-          y: -radius * Math.cos(thetaStart + v * thetaLength),
-          z: radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength),
-          phi: phiStart + u * phiLength,
-          theta: thetaStart + v * thetaLength
-        });
-      }
-      vertices.push(verticesRow);
-    }
-
-    for (y = 0; y < segY; y++) {
-      for (x = 0; x < segX; x++) {
-        dom = document.createElement('div');
-        domStyle = dom.style;
-        domStyle.position = 'absolute';
-        domStyle.width = segWidth + 'px';
-        domStyle.height = segHeight + 'px';
-        domStyle.overflow = 'hidden';
-        domStyle[PerspectiveTransform.transformOriginStyleName] = '0 0';
-        domStyle.backgroundImage = diffuseBg;
-        domStyle.backgroundPosition = (-segWidth * x) + 'px ' + (-segHeight * y) + 'px';
-        dom.perspectiveTransform = new PerspectiveTransform(dom, segWidth, segHeight);
-        dom.topLeft = vertices[y][x];
-        dom.topRight = vertices[y][x + 1];
-        dom.bottomLeft = vertices[y + 1][x];
-        dom.bottomRight = vertices[y + 1][x + 1];
-        globeContainer.appendChild(dom);
-        globeDoms.push(dom);
-      }
-    }
-  }
-
-  /* ---------- rendering ---------- */
-
-  function rotate(vertex, x, y, z) {
-    var x0 = x * cosRY - z * sinRY;
-    var z0 = z * cosRY + x * sinRY;
-    var y0 = y * cosRX - z0 * sinRX;
-    z0 = z0 * cosRX + y * sinRX;
-
-    var offset = 1 + z0 / 4000;
-    var x1 = x0 * cosRZ - y0 * sinRZ;
-    y0 = y0 * cosRZ + x0 * sinRZ;
-
-    vertex.px = x1 * offset;
-    vertex.py = y0 * offset;
-  }
-
-  // Pushes the edges of each tile outward a little so no seams show between tiles.
-  function expand(v1, v2) {
-    var x = v2.px - v1.px;
-    var y = v2.py - v1.py;
-    var det = x * x + y * y;
-
-    if (det === 0) {
-      v1.tx = v1.px; v1.ty = v1.py;
-      v2.tx = v2.px; v2.ty = v2.py;
-      return;
-    }
-
-    var idet = pixelExpandOffset / Math.sqrt(det);
-    x *= idet;
-    y *= idet;
-
-    v2.tx = v2.px + x;
-    v2.ty = v2.py + y;
-    v1.tx = v1.px - x;
-    v1.ty = v1.py - y;
-  }
-
-  function transformGlobe() {
-    var x, y, i, len, dom, pt, v1, v2, v3, v4;
-
-    tick ^= 1;
-    if (tick) {
-      sinRY = Math.sin(rY);
-      sinRX = Math.sin(-rX);
-      sinRZ = Math.sin(rZ);
-      cosRY = Math.cos(rY);
-      cosRX = Math.cos(-rX);
-      cosRZ = Math.cos(rZ);
-
-      var segX = config.segX;
-      var segY = config.segY;
-
-      for (y = 0; y <= segY; y++) {
-        var row = vertices[y];
-        for (x = 0; x <= segX; x++) {
-          var vertex = row[x];
-          rotate(vertex, vertex.x, vertex.y, vertex.z);
-        }
+        this.matrix = '';
       }
 
-      for (y = 0; y < segY; y++) {
-        for (x = 0; x < segX; x++) {
-          dom = globeDoms[x + segX * y];
 
-          v1 = dom.topLeft;
-          v2 = dom.topRight;
-          v3 = dom.bottomLeft;
-          v4 = dom.bottomRight;
+      PerspectiveTransform.transformStyleName =
+        transformStyleName;
 
-          expand(v1, v2);
-          expand(v2, v3);
-          expand(v3, v4);
-          expand(v4, v1);
+      PerspectiveTransform.transformOriginStyleName =
+        transformOriginStyleName;
 
-          pt = dom.perspectiveTransform;
-          pt.topLeft.x = v1.tx;     pt.topLeft.y = v1.ty;
-          pt.topRight.x = v2.tx;    pt.topRight.y = v2.ty;
-          pt.bottomLeft.x = v3.tx;  pt.bottomLeft.y = v3.ty;
-          pt.bottomRight.x = v4.tx; pt.bottomRight.y = v4.ty;
 
-          pt.hasError = pt.checkError();
-          if (!pt.hasError) {
-            pt.calc();
+      /*
+       * Determines whether the quad is visible.
+       */
+
+      PerspectiveTransform.prototype.checkError =
+        function () {
+
+          var tl = this.topLeft;
+          var tr = this.topRight;
+          var bl = this.bottomLeft;
+
+          var cross =
+            (tr.x - tl.x) * (bl.y - tl.y) -
+            (tr.y - tl.y) * (bl.x - tl.x);
+
+          return !(cross > 0);
+        };
+
+
+      /*
+       * Calculate CSS matrix3d.
+       */
+
+      PerspectiveTransform.prototype.calc =
+        function () {
+
+          var x0 = this.topLeft.x;
+          var y0 = this.topLeft.y;
+
+          var x1 = this.topRight.x;
+          var y1 = this.topRight.y;
+
+          var x2 = this.bottomRight.x;
+          var y2 = this.bottomRight.y;
+
+          var x3 = this.bottomLeft.x;
+          var y3 = this.bottomLeft.y;
+
+
+          var dx1 = x1 - x2;
+          var dx2 = x3 - x2;
+          var dx3 = x0 - x1 + x2 - x3;
+
+          var dy1 = y1 - y2;
+          var dy2 = y3 - y2;
+          var dy3 = y0 - y1 + y2 - y3;
+
+
+          var a, b, c, d, e, f, g, h;
+
+
+          /*
+           * Affine case
+           */
+
+          if (
+            Math.abs(dx3) < 1e-9 &&
+            Math.abs(dy3) < 1e-9
+          ) {
+
+            a = x1 - x0;
+            b = x3 - x0;
+            c = x0;
+
+            d = y1 - y0;
+            e = y3 - y0;
+            f = y0;
+
+            g = 0;
+            h = 0;
+
+          } else {
+
+            var den =
+              dx1 * dy2 -
+              dx2 * dy1;
+
+
+            if (Math.abs(den) < 1e-12) {
+
+              this.hasError = true;
+
+              return;
+            }
+
+
+            g =
+              (dx3 * dy2 -
+               dx2 * dy3) / den;
+
+
+            h =
+              (dx1 * dy3 -
+               dx3 * dy1) / den;
+
+
+            a =
+              x1 -
+              x0 +
+              g * x1;
+
+
+            b =
+              x3 -
+              x0 +
+              h * x3;
+
+
+            c = x0;
+
+
+            d =
+              y1 -
+              y0 +
+              g * y1;
+
+
+            e =
+              y3 -
+              y0 +
+              h * y3;
+
+
+            f = y0;
           }
-        }
+
+
+          var w = this.width;
+          var hh = this.height;
+
+
+          this.matrix =
+            'matrix3d(' +
+            [
+              a / w,
+              d / w,
+              0,
+              g / w,
+
+              b / hh,
+              e / hh,
+              0,
+              h / hh,
+
+              0,
+              0,
+              1,
+              0,
+
+              c,
+              f,
+              0,
+              1
+
+            ].join(',') +
+            ')';
+        };
+
+
+      PerspectiveTransform.prototype.update =
+        function () {
+
+          this.style[transformStyleName] =
+            this.matrix;
+
+        };
+
+
+      global.PerspectiveTransform =
+        PerspectiveTransform;
+
+    })(window);
+
+
+
+    /* =========================================================
+       GLOBE
+       ========================================================= */
+
+    (function () {
+
+      'use strict';
+
+
+      /* =======================================================
+         LOCAL ASSETS
+
+         IMPORTANT:
+         globe_diffuse.jpg = 2048 × 1024
+         ======================================================= */
+
+      var SOURCES = {
+
+        bg:
+          'assets/globe_bg.jpg',
+
+        diffuse:
+          'assets/globe_diffuse.jpg',
+
+        halo:
+          'assets/globe_halo.png'
+
+      };
+
+
+      var URLS = {};
+
+
+      /* =======================================================
+         GLOBE CONFIGURATION
+         ======================================================= */
+
+      var config = {
+
+        lat: 0,
+
+        lng: 0,
+
+        /*
+         * Higher segmentation creates a smoother globe.
+         *
+         * 2048 / 32 = 64
+         * 1024 / 16 = 64
+         *
+         * This matches the new image perfectly.
+         */
+
+        segX: 32,
+
+        segY: 16,
+
+        isHaloVisible: true,
+
+        isPoleVisible: true,
+
+        autoSpin: true,
+
+        zoom: 0
+
+      };
+
+
+      /* =======================================================
+         VARIABLES
+         ======================================================= */
+
+      var globeDoms = [];
+
+      var vertices = [];
+
+      var world;
+
+      var worldBg;
+
+      var globe;
+
+      var globeContainer;
+
+      var globePole;
+
+      var globeHalo;
+
+
+      /*
+       * Base globe size.
+       *
+       * The texture is 2048 × 1024,
+       * but the actual 3D globe is 536px wide.
+       *
+       * It is scaled responsively later.
+       */
+
+      var BASE_GLOBE_SIZE = 536;
+
+      var BASE_RADIUS =
+        BASE_GLOBE_SIZE / 2;
+
+
+      var pixelExpandOffset = 1.5;
+
+
+      var sinRX;
+      var sinRY;
+      var sinRZ;
+
+      var cosRX;
+      var cosRY;
+      var cosRZ;
+
+
+      var rX = 0;
+      var rY = 0;
+      var rZ = 0;
+
+
+      var dragX;
+      var dragY;
+
+      var dragLat;
+      var dragLng;
+
+
+      var isMouseDown = false;
+
+      var isTweening = false;
+
+      var activeTween = null;
+
+
+      var tick = 1;
+
+
+      var transformStyleName =
+        PerspectiveTransform.transformStyleName;
+
+
+
+      /* =======================================================
+         HELPERS
+         ======================================================= */
+
+      function clamp(x, min, max) {
+
+        return x < min
+          ? min
+          : x > max
+            ? max
+            : x;
+
       }
-    } else {
-      for (i = 0, len = globeDoms.length; i < len; i++) {
-        pt = globeDoms[i].perspectiveTransform;
-        if (!pt.hasError) {
-          pt.update();
-        } else {
-          pt.style[transformStyleName] = 'translate3d(-8192px, 0, 0)';
-        }
+
+
+      function clampLng(lng) {
+
+        return (
+          ((((lng + 180) % 360) + 360) % 360)
+          - 180
+        );
+
       }
-    }
-  }
 
-  function render() {
-    if (config.autoSpin && !isMouseDown && !isTweening) {
-      config.lng = clampLng(config.lng - 0.2);
-    }
 
-    rX = (config.lat / 180) * Math.PI;
-    rY = ((clampLng(config.lng) - 270) / 180) * Math.PI;
+      function easeInOutSine(t) {
 
-    globePole.style.display = config.isPoleVisible ? 'block' : 'none';
-    globeHalo.style.display = config.isHaloVisible ? 'block' : 'none';
+        return -(
+          Math.cos(Math.PI * t) - 1
+        ) / 2;
 
-    var ratio = Math.pow(config.zoom, 1.5);
-    pixelExpandOffset = 1.5 + ratio * -1.25;
-    ratio = 1 + ratio * 3;
-    globe.style[transformStyleName] = 'scale3d(' + ratio + ',' + ratio + ',1)';
-    ratio = 1 + Math.pow(config.zoom, 3) * 0.3;
-    worldBg.style[transformStyleName] = 'scale3d(' + ratio + ',' + ratio + ',1)';
+      }
 
-    transformGlobe();
-  }
 
-  function loop() {
-    requestAnimationFrame(loop);
-    render();
-  }
 
-  /* ---------- interaction ---------- */
+      /* =======================================================
+         IMAGE LOADING
+         ======================================================= */
 
-  function onPointerDown(evt) {
-    if (activeTween) {
-      activeTween.cancel();
-      activeTween = null;
-      isTweening = false;
-    }
-    isMouseDown = true;
-    dragX = evt.clientX;
-    dragY = evt.clientY;
-    dragLat = config.lat;
-    dragLng = config.lng;
-    world.classList.add('dragging');
-    if (world.setPointerCapture) {
-      try { world.setPointerCapture(evt.pointerId); } catch (e) { /* ignore */ }
-    }
-  }
+      function loadImage(url) {
 
-  function onPointerMove(evt) {
-    if (!isMouseDown) return;
-    var dX = evt.clientX - dragX;
-    var dY = evt.clientY - dragY;
-    config.lat = clamp(dragLat + dY * 0.5, -90, 90);
-    config.lng = clampLng(dragLng - dX * 0.5);
-  }
+        return new Promise(
+          function (resolve, reject) {
 
-  function onPointerUp() {
-    isMouseDown = false;
-    world.classList.remove('dragging');
-  }
+            var img = new Image();
 
-  function onWheel(evt) {
-    evt.preventDefault();
-    config.zoom = clamp(config.zoom - evt.deltaY * 0.001, 0, 1);
-  }
+            img.onload =
+              function () {
 
-  /* ---------- init ---------- */
+                resolve(img);
 
-  function init() {
-    world = document.querySelector('.world');
-    worldBg = document.querySelector('.world-bg');
-    globe = document.querySelector('.world-globe');
-    globeContainer = document.querySelector('.world-globe-doms-container');
-    globePole = document.querySelector('.world-globe-pole');
-    globeHalo = document.querySelector('.world-globe-halo');
+              };
 
-    if (URLS.bg) worldBg.style.backgroundImage = 'url(' + URLS.bg + ')';
-    if (URLS.halo) globeHalo.style.backgroundImage = 'url(' + URLS.halo + ')';
 
-    regenerateGlobe();
+            img.onerror =
+              function () {
 
-    world.addEventListener('dragstart', function (e) { e.preventDefault(); });
-    world.addEventListener('pointerdown', onPointerDown);
-    world.addEventListener('pointermove', onPointerMove);
-    world.addEventListener('pointerup', onPointerUp);
-    world.addEventListener('pointercancel', onPointerUp);
-    world.addEventListener('wheel', onWheel, { passive: false });
+                reject(url);
 
-    // Handy for future changes: GlobeApp.goTo(22.28552, 114.15769)
-    window.GlobeApp = { config: config, goTo: goTo };
+              };
 
-    loop();
-  }
 
-  // Make sure the textures exist before building the globe
-  Promise.all([
-    loadFirst(SOURCES.diffuse),
-    loadFirst(SOURCES.bg).catch(function () { return null; }),
-    loadFirst(SOURCES.halo).catch(function () { return null; })
-  ]).then(function (r) {
-    URLS.diffuse = r[0];
-    URLS.bg = r[1];
-    URLS.halo = r[2];
-    init();
-  }).catch(function () {
-    showMessage('Could not load the globe texture.<br>Add <code>globe_diffuse.jpg</code> to the <code>assets/</code> folder (see README.md).');
-  });
-})();
+            img.src = url;
 
-</script>
-  </body>
+          }
+        );
+
+      }
+
+
+
+      function showMessage(html) {
+
+        var el =
+          document.getElementById('message');
+
+        el.innerHTML = html;
+
+        el.hidden = false;
+
+      }
+
+
+
+      /* =======================================================
+         ANIMATION
+         ======================================================= */
+
+      function tween(
+        durationSec,
+        update,
+        done
+      ) {
+
+        var start =
+          performance.now();
+
+        var cancelled = false;
+
+
+        function step(now) {
+
+          if (cancelled) {
+            return;
+          }
+
+
+          var t =
+            durationSec <= 0
+              ? 1
+              : Math.min(
+                  (now - start) /
+                  (durationSec * 1000),
+                  1
+                );
+
+
+          update(
+            easeInOutSine(t)
+          );
+
+
+          if (t < 1) {
+
+            requestAnimationFrame(step);
+
+          } else if (done) {
+
+            done();
+
+          }
+
+        }
+
+
+        requestAnimationFrame(step);
+
+
+        return {
+
+          cancel:
+            function () {
+
+              cancelled = true;
+
+            }
+
+        };
+
+      }
+
+
+
+      /* =======================================================
+         GO TO LOCATION
+         ======================================================= */
+
+      function goTo(lat, lng) {
+
+        if (activeTween) {
+          activeTween.cancel();
+        }
+
+
+        var startLat =
+          config.lat;
+
+        var startLng =
+          config.lng;
+
+
+        var dLat =
+          lat - startLat;
+
+
+        var dLng =
+          clampLng(
+            lng - startLng
+          );
+
+
+        var roughDistance =
+          Math.sqrt(
+            dLat * dLat +
+            dLng * dLng
+          );
+
+
+        var startZoom =
+          config.zoom;
+
+
+        isTweening = true;
+
+
+        activeTween =
+          tween(
+            Math.max(
+              roughDistance * 0.01,
+              0.2
+            ),
+
+            function (e) {
+
+              config.lat =
+                startLat +
+                dLat * e;
+
+
+              config.lng =
+                clampLng(
+                  startLng +
+                  dLng * e
+                );
+
+            },
+
+            function () {
+
+              activeTween =
+                tween(
+                  1,
+
+                  function (e) {
+
+                    config.zoom =
+                      startZoom +
+                      (1 - startZoom) * e;
+
+                  },
+
+                  function () {
+
+                    isTweening = false;
+
+                    activeTween = null;
+
+                  }
+                );
+
+            }
+          );
+
+      }
+
+
+
+      /* =======================================================
+         RESPONSIVE SCALE
+         ======================================================= */
+
+      function getResponsiveScale() {
+
+        var width =
+          window.innerWidth;
+
+        var height =
+          window.innerHeight;
+
+
+        /*
+         * Keep a comfortable margin around
+         * the globe.
+         */
+
+        var available =
+          Math.min(width, height) * 0.78;
+
+
+        var scale =
+          available /
+          BASE_GLOBE_SIZE;
+
+
+        /*
+         * Prevent the globe from becoming
+         * unnecessarily tiny on very large
+         * screens.
+         */
+
+        scale =
+          Math.max(
+            scale,
+            0.55
+          );
+
+
+        return scale;
+
+      }
+
+
+
+      /* =======================================================
+         GLOBE CONSTRUCTION
+         ======================================================= */
+
+      function regenerateGlobe() {
+
+        var dom;
+
+        var domStyle;
+
+        var x;
+
+        var y;
+
+
+        globeDoms = [];
+
+
+        /*
+         * Remove old texture tiles.
+         */
+
+        while (
+          (dom =
+            globeContainer.firstChild)
+        ) {
+
+          globeContainer.removeChild(
+            dom
+          );
+
+        }
+
+
+        var segX =
+          config.segX;
+
+        var segY =
+          config.segY;
+
+
+        var diffuseBg =
+          'url("' +
+          URLS.diffuse +
+          '")';
+
+
+        /*
+         * NEW IMAGE:
+         *
+         * 2048 × 1024
+         *
+         * 32 × 16 segments
+         *
+         * 64 × 64 pixels per tile
+         */
+
+        var segWidth =
+          2048 / segX;
+
+        var segHeight =
+          1024 / segY;
+
+
+        var radius =
+          BASE_RADIUS;
+
+
+        var phiStart = 0;
+
+        var phiLength =
+          Math.PI * 2;
+
+
+        var thetaStart = 0;
+
+        var thetaLength =
+          Math.PI;
+
+
+        vertices = [];
+
+
+        /* -----------------------------------------------------
+           CREATE SPHERE VERTICES
+           ----------------------------------------------------- */
+
+        for (
+          y = 0;
+          y <= segY;
+          y++
+        ) {
+
+          var verticesRow = [];
+
+
+          for (
+            x = 0;
+            x <= segX;
+            x++
+          ) {
+
+            var u =
+              x / segX;
+
+
+            var v =
+              0.05 +
+              (y / segY) *
+              (1 - 0.1);
+
+
+            verticesRow.push({
+
+              x:
+                -radius *
+                Math.cos(
+                  phiStart +
+                  u * phiLength
+                ) *
+                Math.sin(
+                  thetaStart +
+                  v * thetaLength
+                ),
+
+
+              y:
+                -radius *
+                Math.cos(
+                  thetaStart +
+                  v * thetaLength
+                ),
+
+
+              z:
+                radius *
+                Math.sin(
+                  phiStart +
+                  u * phiLength
+                ) *
+                Math.sin(
+                  thetaStart +
+                  v * thetaLength
+                ),
+
+
+              phi:
+                phiStart +
+                u * phiLength,
+
+
+              theta:
+                thetaStart +
+                v * thetaLength
+
+            });
+
+          }
+
+
+          vertices.push(
+            verticesRow
+          );
+
+        }
+
+
+
+        /* -----------------------------------------------------
+           CREATE TEXTURE TILES
+           ----------------------------------------------------- */
+
+        for (
+          y = 0;
+          y < segY;
+          y++
+        ) {
+
+          for (
+            x = 0;
+            x < segX;
+            x++
+          ) {
+
+            dom =
+              document.createElement(
+                'div'
+              );
+
+
+            domStyle =
+              dom.style;
+
+
+            domStyle.position =
+              'absolute';
+
+
+            domStyle.width =
+              segWidth + 'px';
+
+
+            domStyle.height =
+              segHeight + 'px';
+
+
+            domStyle.overflow =
+              'hidden';
+
+
+            domStyle.pointerEvents =
+              'none';
+
+
+            domStyle.transformOrigin =
+              '0 0';
+
+
+            /*
+             * Use the complete 2048 × 1024
+             * image for every tile.
+             */
+
+            domStyle.backgroundImage =
+              diffuseBg;
+
+
+            domStyle.backgroundRepeat =
+              'no-repeat';
+
+
+            domStyle.backgroundSize =
+              '2048px 1024px';
+
+
+            /*
+             * Position the correct section
+             * of the world map.
+             */
+
+            domStyle.backgroundPosition =
+              (-segWidth * x) +
+              'px ' +
+              (-segHeight * y) +
+              'px';
+
+
+            dom.perspectiveTransform =
+              new PerspectiveTransform(
+                dom,
+                segWidth,
+                segHeight
+              );
+
+
+            dom.topLeft =
+              vertices[y][x];
+
+
+            dom.topRight =
+              vertices[y][x + 1];
+
+
+            dom.bottomLeft =
+              vertices[y + 1][x];
+
+
+            dom.bottomRight =
+              vertices[y + 1][x + 1];
+
+
+            globeContainer.appendChild(
+              dom
+            );
+
+
+            globeDoms.push(
+              dom
+            );
+
+          }
+
+        }
+
+      }
+
+
+
+      /* =======================================================
+         ROTATION
+         ======================================================= */
+
+      function rotate(
+        vertex,
+        x,
+        y,
+        z
+      ) {
+
+        var x0 =
+          x * cosRY -
+          z * sinRY;
+
+
+        var z0 =
+          z * cosRY +
+          x * sinRY;
+
+
+        var y0 =
+          y * cosRX -
+          z0 * sinRX;
+
+
+        z0 =
+          z0 * cosRX +
+          y * sinRX;
+
+
+        var offset =
+          1 +
+          z0 / 4000;
+
+
+        var x1 =
+          x0 * cosRZ -
+          y0 * sinRZ;
+
+
+        y0 =
+          y0 * cosRZ +
+          x0 * sinRZ;
+
+
+        vertex.px =
+          x1 * offset;
+
+
+        vertex.py =
+          y0 * offset;
+
+      }
+
+
+
+      /* =======================================================
+         TILE EDGE EXPANSION
+         ======================================================= */
+
+      function expand(
+        v1,
+        v2
+      ) {
+
+        var x =
+          v2.px -
+          v1.px;
+
+
+        var y =
+          v2.py -
+          v1.py;
+
+
+        var det =
+          x * x +
+          y * y;
+
+
+        if (det === 0) {
+
+          v1.tx =
+            v1.px;
+
+          v1.ty =
+            v1.py;
+
+
+          v2.tx =
+            v2.px;
+
+          v2.ty =
+            v2.py;
+
+
+          return;
+
+        }
+
+
+        var idet =
+          pixelExpandOffset /
+          Math.sqrt(det);
+
+
+        x *= idet;
+
+        y *= idet;
+
+
+        v2.tx =
+          v2.px + x;
+
+        v2.ty =
+          v2.py + y;
+
+
+        v1.tx =
+          v1.px - x;
+
+        v1.ty =
+          v1.py - y;
+
+      }
+
+
+
+      /* =======================================================
+         TRANSFORM GLOBE
+         ======================================================= */
+
+      function transformGlobe() {
+
+        var x;
+
+        var y;
+
+        var i;
+
+        var len;
+
+        var dom;
+
+        var pt;
+
+        var v1;
+
+        var v2;
+
+        var v3;
+
+        var v4;
+
+
+        tick ^= 1;
+
+
+        /*
+         * Calculate the expensive vertex
+         * positions only every other frame.
+         */
+
+        if (tick) {
+
+          sinRY =
+            Math.sin(rY);
+
+          sinRX =
+            Math.sin(-rX);
+
+          sinRZ =
+            Math.sin(rZ);
+
+
+          cosRY =
+            Math.cos(rY);
+
+          cosRX =
+            Math.cos(-rX);
+
+          cosRZ =
+            Math.cos(rZ);
+
+
+          var segX =
+            config.segX;
+
+          var segY =
+            config.segY;
+
+
+          /* -----------------------------------------------
+             Rotate vertices
+             ----------------------------------------------- */
+
+          for (
+            y = 0;
+            y <= segY;
+            y++
+          ) {
+
+            var row =
+              vertices[y];
+
+
+            for (
+              x = 0;
+              x <= segX;
+              x++
+            ) {
+
+              var vertex =
+                row[x];
+
+
+              rotate(
+                vertex,
+                vertex.x,
+                vertex.y,
+                vertex.z
+              );
+
+            }
+
+          }
+
+
+          /* -----------------------------------------------
+             Update texture tiles
+             ----------------------------------------------- */
+
+          for (
+            y = 0;
+            y < segY;
+            y++
+          ) {
+
+            for (
+              x = 0;
+              x < segX;
+              x++
+            ) {
+
+              dom =
+                globeDoms[
+                  x +
+                  segX * y
+                ];
+
+
+              v1 =
+                dom.topLeft;
+
+              v2 =
+                dom.topRight;
+
+              v3 =
+                dom.bottomLeft;
+
+              v4 =
+                dom.bottomRight;
+
+
+              expand(v1, v2);
+
+              expand(v2, v3);
+
+              expand(v3, v4);
+
+              expand(v4, v1);
+
+
+              pt =
+                dom.perspectiveTransform;
+
+
+              pt.topLeft.x =
+                v1.tx;
+
+              pt.topLeft.y =
+                v1.ty;
+
+
+              pt.topRight.x =
+                v2.tx;
+
+              pt.topRight.y =
+                v2.ty;
+
+
+              pt.bottomLeft.x =
+                v3.tx;
+
+              pt.bottomLeft.y =
+                v3.ty;
+
+
+              pt.bottomRight.x =
+                v4.tx;
+
+              pt.bottomRight.y =
+                v4.ty;
+
+
+              pt.hasError =
+                pt.checkError();
+
+
+              if (!pt.hasError) {
+
+                pt.calc();
+
+              }
+
+            }
+
+          }
+
+        }
+
+
+        /*
+         * Apply the calculated transforms.
+         */
+
+        else {
+
+          for (
+            i = 0,
+            len = globeDoms.length;
+
+            i < len;
+
+            i++
+          ) {
+
+            pt =
+              globeDoms[i]
+                .perspectiveTransform;
+
+
+            if (!pt.hasError) {
+
+              pt.update();
+
+            } else {
+
+              pt.style[
+                transformStyleName
+              ] =
+                'translate3d(-8192px,0,0)';
+
+            }
+
+          }
+
+        }
+
+      }
+
+
+
+      /* =======================================================
+         RENDER
+         ======================================================= */
+
+      function render() {
+
+        /*
+         * Automatic rotation.
+         */
+
+        if (
+          config.autoSpin &&
+          !isMouseDown &&
+          !isTweening
+        ) {
+
+          config.lng =
+            clampLng(
+              config.lng - 0.2
+            );
+
+        }
+
+
+        rX =
+          (config.lat / 180) *
+          Math.PI;
+
+
+        rY =
+          (
+            (clampLng(
+              config.lng
+            ) - 270) /
+            180
+          ) *
+          Math.PI;
+
+
+        /*
+         * Pole visibility.
+         */
+
+        globePole.style.display =
+          config.isPoleVisible
+            ? 'block'
+            : 'none';
+
+
+        /*
+         * Halo visibility.
+         */
+
+        globeHalo.style.display =
+          config.isHaloVisible
+            ? 'block'
+            : 'none';
+
+
+
+        /* -----------------------------------------------------
+           RESPONSIVE GLOBE SIZE
+           ----------------------------------------------------- */
+
+        var responsiveScale =
+          getResponsiveScale();
+
+
+        /*
+         * Zoom effect.
+         */
+
+        var zoomPower =
+          Math.pow(
+            config.zoom,
+            1.5
+          );
+
+
+        var globeZoom =
+          1 +
+          zoomPower * 3;
+
+
+        var finalScale =
+          responsiveScale *
+          globeZoom;
+
+
+        globe.style[
+          transformStyleName
+        ] =
+          'scale3d(' +
+          finalScale +
+          ',' +
+          finalScale +
+          ',1)';
+
+
+        /*
+         * Background zooms slightly
+         * with the globe.
+         */
+
+        var bgZoom =
+          1 +
+          Math.pow(
+            config.zoom,
+            3
+          ) *
+          0.3;
+
+
+        worldBg.style[
+          transformStyleName
+        ] =
+          'scale3d(' +
+          bgZoom +
+          ',' +
+          bgZoom +
+          ',1)';
+
+
+        /*
+         * Reduce tile seams when zoomed.
+         */
+
+        pixelExpandOffset =
+          1.5 -
+          zoomPower * 1.25;
+
+
+        transformGlobe();
+
+      }
+
+
+
+      /* =======================================================
+         ANIMATION LOOP
+         ======================================================= */
+
+      function loop() {
+
+        requestAnimationFrame(
+          loop
+        );
+
+        render();
+
+      }
+
+
+
+      /* =======================================================
+         POINTER / TOUCH CONTROLS
+         ======================================================= */
+
+      function onPointerDown(evt) {
+
+        if (activeTween) {
+
+          activeTween.cancel();
+
+          activeTween = null;
+
+          isTweening = false;
+
+        }
+
+
+        isMouseDown = true;
+
+
+        dragX =
+          evt.clientX;
+
+
+        dragY =
+          evt.clientY;
+
+
+        dragLat =
+          config.lat;
+
+
+        dragLng =
+          config.lng;
+
+
+        world.classList.add(
+          'dragging'
+        );
+
+
+        if (
+          world.setPointerCapture
+        ) {
+
+          try {
+
+            world.setPointerCapture(
+              evt.pointerId
+            );
+
+          } catch (e) {
+
+            /* Ignore */
+
+          }
+
+        }
+
+      }
+
+
+
+      function onPointerMove(evt) {
+
+        if (!isMouseDown) {
+          return;
+        }
+
+
+        var dX =
+          evt.clientX -
+          dragX;
+
+
+        var dY =
+          evt.clientY -
+          dragY;
+
+
+        /*
+         * Rotate vertically.
+         */
+
+        config.lat =
+          clamp(
+            dragLat +
+            dY * 0.5,
+
+            -90,
+
+            90
+          );
+
+
+        /*
+         * Rotate horizontally.
+         */
+
+        config.lng =
+          clampLng(
+            dragLng -
+            dX * 0.5
+          );
+
+      }
+
+
+
+      function onPointerUp() {
+
+        isMouseDown = false;
+
+        world.classList.remove(
+          'dragging'
+        );
+
+      }
+
+
+
+      /* =======================================================
+         MOUSE WHEEL ZOOM
+         ======================================================= */
+
+      function onWheel(evt) {
+
+        evt.preventDefault();
+
+
+        config.zoom =
+          clamp(
+            config.zoom -
+            evt.deltaY * 0.001,
+
+            0,
+
+            1
+          );
+
+      }
+
+
+
+      /* =======================================================
+         DOUBLE CLICK / DOUBLE TAP
+         ======================================================= */
+
+      function onDoubleClick() {
+
+        config.zoom =
+          config.zoom > 0.4
+            ? 0
+            : 0.55;
+
+      }
+
+
+
+      /* =======================================================
+         RESIZE
+         ======================================================= */
+
+      function onResize() {
+
+        /*
+         * Recalculate responsive size.
+         */
+
+        render();
+
+      }
+
+
+
+      /* =======================================================
+         INITIALISE
+         ======================================================= */
+
+      function init() {
+
+        world =
+          document.querySelector(
+            '.world'
+          );
+
+
+        worldBg =
+          document.querySelector(
+            '.world-bg'
+          );
+
+
+        globe =
+          document.querySelector(
+            '.world-globe'
+          );
+
+
+        globeContainer =
+          document.querySelector(
+            '.world-globe-doms-container'
+          );
+
+
+        globePole =
+          document.querySelector(
+            '.world-globe-pole'
+          );
+
+
+        globeHalo =
+          document.querySelector(
+            '.world-globe-halo'
+          );
+
+
+        /*
+         * Background.
+         */
+
+        if (URLS.bg) {
+
+          worldBg.style.backgroundImage =
+            'url("' +
+            URLS.bg +
+            '")';
+
+        }
+
+
+        /*
+         * Atmosphere.
+         */
+
+        if (URLS.halo) {
+
+          globeHalo.style.backgroundImage =
+            'url("' +
+            URLS.halo +
+            '")';
+
+        }
+
+
+        /*
+         * Build globe.
+         */
+
+        regenerateGlobe();
+
+
+        /* -----------------------------------------------------
+           INTERACTION
+           ----------------------------------------------------- */
+
+        world.addEventListener(
+          'dragstart',
+          function (e) {
+
+            e.preventDefault();
+
+          }
+        );
+
+
+        world.addEventListener(
+          'pointerdown',
+          onPointerDown
+        );
+
+
+        world.addEventListener(
+          'pointermove',
+          onPointerMove
+        );
+
+
+        world.addEventListener(
+          'pointerup',
+          onPointerUp
+        );
+
+
+        world.addEventListener(
+          'pointercancel',
+          onPointerUp
+        );
+
+
+        world.addEventListener(
+          'pointerleave',
+          onPointerUp
+        );
+
+
+        world.addEventListener(
+          'wheel',
+          onWheel,
+          {
+            passive: false
+          }
+        );
+
+
+        world.addEventListener(
+          'dblclick',
+          onDoubleClick
+        );
+
+
+        window.addEventListener(
+          'resize',
+          onResize
+        );
+
+
+        window.addEventListener(
+          'orientationchange',
+          function () {
+
+            setTimeout(
+              onResize,
+              100
+            );
+
+          }
+        );
+
+
+        /*
+         * Public API for future use.
+         */
+
+        window.GlobeApp = {
+
+          config: config,
+
+          goTo: goTo
+
+        };
+
+
+        /*
+         * Start animation.
+         */
+
+        loop();
+
+      }
+
+
+
+      /* =======================================================
+         LOAD LOCAL ASSETS
+         ======================================================= */
+
+      Promise.all([
+
+        loadImage(
+          SOURCES.diffuse
+        ),
+
+        loadImage(
+          SOURCES.bg
+        ).catch(
+          function () {
+            return null;
+          }
+        ),
+
+        loadImage(
+          SOURCES.halo
+        ).catch(
+          function () {
+            return null;
+          }
+        )
+
+      ])
+
+
+      .then(
+        function (images) {
+
+          /*
+           * Make sure the new world map really is
+           * the expected 2048 × 1024 texture.
+           */
+
+          var diffuseImage =
+            images[0];
+
+
+          if (
+            diffuseImage.naturalWidth !== 2048 ||
+            diffuseImage.naturalHeight !== 1024
+          ) {
+
+            console.warn(
+              'The globe texture is ' +
+              diffuseImage.naturalWidth +
+              ' × ' +
+              diffuseImage.naturalHeight +
+              '. Expected 2048 × 1024.'
+            );
+
+          }
+
+
+          URLS.diffuse =
+            SOURCES.diffuse;
+
+
+          URLS.bg =
+            images[1]
+              ? SOURCES.bg
+              : null;
+
+
+          URLS.halo =
+            images[2]
+              ? SOURCES.halo
+              : null;
+
+
+          init();
+
+        }
+      )
+
+
+      .catch(
+        function () {
+
+          showMessage(
+            'Could not load the globe texture.<br><br>' +
+
+            'Make sure your GitHub repository contains:<br><br>' +
+
+            '<code>assets/globe_diffuse.jpg</code>'
+          );
+
+        }
+      );
+
+    })();
+  </script>
+
+</body>
 </html>
