@@ -102,6 +102,471 @@
     .world-globe-halo[hidden] { display: none; }
 
 
+    /* ===== Cube lamp (from cube-lamp.html; page background removed, scoped to .cube-dock) ===== */
+    @keyframes cubeFadeOut {
+      0% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .cube-dock .scene {
+        width: 250px;
+        height: 250px;
+        transform: rotatex(65deg) rotatez(45deg);
+        transform-style: preserve-3d;
+    }
+
+    .cube-dock .main-cube {
+        transform-style: preserve-3d;
+        position: absolute;
+    }
+
+    .cube-dock .main-cube {
+        width: 250px;
+        height: 250px;
+    }
+
+    .cube-dock .side {
+        border: 8px solid black;
+        position: absolute;
+        box-sizing: border-box;
+    }
+
+    .cube-dock .main-cube__side-top {
+        width: 250px;
+        height: 250px;
+        translate: 0px 0px 125px;
+        background-color: rgb(220, 220, 220);
+        transform-style: preserve-3d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cube-dock .hatching {
+        background-image: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 15px,
+          #000 10px,
+          #000 20px
+        );
+        background-color: rgb(255, 255, 255);
+    }
+
+    .cube-dock .main-cube__side-front {
+        width: 250px;
+        height: 250px;
+        translate: 125px 0px 0px;
+        transform: rotatey(90deg);
+    }
+
+    .cube-dock .main-cube__side-left {
+        width: 250px;
+        height: 250px;
+        translate: 0px 125px 0px;
+        transform: rotatex(90deg);
+    }
+
+    .cube-dock .main-cube__inside {
+        position: absolute;
+    }
+
+    .cube-dock .main-cube__inside--bottom {
+        translate: 0px 30px -90px;
+        transform: rotatez(90deg);
+        width: 100%;
+        height: calc(70% + 16px);
+        background-color: rgb(255, 255, 255);
+    }
+
+    .cube-dock .rotating-light-bottom {
+        opacity: 0.8;
+        position: absolute;
+        width: 160px;
+        height: 130%;
+        background-color: rgb(193, 193, 193);
+        translate: 46px 150px -81px;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgba(255, 255, 255, 0.31) 50%,
+          rgba(255, 0, 0, 0) 100%
+        );
+    }
+
+    .cube-dock .rotating-light-back {
+        opacity: 0.8;
+        position: absolute;
+        width: 165px;
+        height: 130%;
+        transform: rotatey(90deg);
+        background-color: rgb(255, 255, 255);
+        translate: -39px 150px 0px;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgba(255, 255, 255, 0.31) 50%,
+          rgba(255, 0, 0, 0) 100%
+        );
+    }
+
+    .cube-dock .main-cube__inside--back {
+        translate: -95px 29px 5px;
+        transform: rotatex(90deg) rotatey(90deg);
+        width: 100%;
+        height: calc(70% + 16px);
+        background-color: rgb(255, 255, 255);
+    }
+
+    .cube-dock .corner {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        width: 15%;
+        height: 15%;
+        position: absolute;
+    }
+
+    .cube-dock .corner-2 {
+        bottom: 0;
+    }
+
+    .cube-dock .corner-3 {
+        bottom: 0;
+        right: 0;
+    }
+
+    .cube-dock .corner-4 {
+        right: 0;
+    }
+
+    .cube-dock .rectangle {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        box-sizing: border-box;
+    }
+
+    .cube-dock .rectangle-1 {
+        margin-left: calc(15% - 8px);
+        border-bottom: 8px solid black;
+        height: 15%;
+        width: calc(70% + 16px);
+    }
+
+    .cube-dock .rectangle-2 {
+        bottom: 0;
+        margin-left: calc(15% - 8px);
+        border-top: 8px solid black;
+        height: 15%;
+        width: calc(70% + 16px);
+    }
+
+    .cube-dock .rectangle-3 {
+        height: calc(70% + 16px);
+        width: 15%;
+        top: calc(15% - 8px);
+        border-right: 8px solid black;
+    }
+
+    .cube-dock .rectangle-4 {
+        height: calc(70% + 16px);
+        width: 15%;
+        top: calc(15% - 8px);
+        right: 0;
+        border-left: 8px solid black;
+    }
+
+    .cube-dock .rotating-cube {
+        position: absolute;
+        transform-style: preserve-3d;
+        width: 250px;
+        height: 250px;
+        transition: 0.7s ease-in-out;
+    }
+
+    .cube-dock .rotating-cube--rotated {
+        transform: rotatey(90deg);
+    }
+
+    .cube-dock .rotating-cube__top {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        border: 8px solid black;
+        box-sizing: border-box;
+        width: 100px;
+        height: 400px;
+        translate: 75px 0px 50px;
+        cursor: pointer;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgb(255 255 255) 50%,
+          rgb(220 220 220) 100%
+        );
+    }
+
+    .cube-dock .rotating-cube__front {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        border: 8px solid black;
+        box-sizing: border-box;
+        width: 100px;
+        height: 400px;
+        transform: rotatey(90deg);
+        translate: 125px 0px 0px;
+        cursor: pointer;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgb(255 255 255) 50%,
+          rgb(220 220 220) 100%
+        );
+    }
+
+    .cube-dock .rotating-cube__bottom {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        border: 8px solid black;
+        box-sizing: border-box;
+        width: 100px;
+        height: 400px;
+        translate: 75px 0px -50px;
+        cursor: pointer;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgb(255 255 255) 50%,
+          rgb(220 220 220) 100%
+        );
+    }
+
+    .cube-dock .rotating-cube__back {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        border: 8px solid black;
+        box-sizing: border-box;
+        width: 100px;
+        height: 400px;
+        transform: rotatey(90deg);
+        translate: 25px 0px 0px;
+        cursor: pointer;
+        background: linear-gradient(
+          180deg,
+          rgb(255, 255, 255) 0%,
+          rgb(255 255 255) 50%,
+          rgb(220 220 220) 100%
+        );
+    }
+
+    .cube-dock .rotating-cube__left {
+        position: absolute;
+        background-color: rgb(220, 220, 220);
+        border: 8px solid black;
+        box-sizing: border-box;
+        width: 100px;
+        height: 100px;
+        transform: rotatex(90deg) rotatez(180deg) rotatey(180deg);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        translate: 75px 350px 0px;
+    }
+
+    .cube-dock .text {
+        opacity: 1;
+        width: 100%;
+        text-align: center;
+        font-size: 1.5rem;
+        font-family: sans-serif;
+        animation: cubeFadeOut 0.5s ease-in 2s forwards;
+    }
+
+    .cube-dock .bulb-cube {
+        position: absolute;
+        transform-style: preserve-3d;
+        width: 250px;
+        height: 250px;
+        translate: -72px;
+        transition: 0.7s ease-in-out;
+    }
+
+    .cube-dock .bulb-cube--opened {
+        translate: 0;
+    }
+
+    .cube-dock .bulb-cube__top {
+        position: absolute;
+        width: 75px;
+        height: 165px;
+        translate: 249px 42px 82px;
+        box-sizing: border-box;
+        border: 8px solid black;
+        background-color: white;
+    }
+
+    .cube-dock .bulb-cube__left {
+        position: absolute;
+        width: 75px;
+        height: 165px;
+        translate: 249px 125px 1px;
+        box-sizing: border-box;
+        border: 8px solid black;
+        transform: rotatex(90deg);
+        background-color: white;
+    }
+
+    .cube-dock .bulb-cube__front {
+        position: absolute;
+        width: 165px;
+        height: 165px;
+        translate: 241px 43px 0px;
+        box-sizing: border-box;
+        border: 8px solid black;
+        transform: rotatey(90deg);
+        background-color: rgb(220, 220, 220);
+    }
+
+    .cube-dock .bulb-light-left {
+        opacity: 0;
+        position: absolute;
+        width: 175px;
+        height: 165px;
+        translate: 249px 126px 1px;
+        box-sizing: border-box;
+        transform: rotatex(90deg);
+        background: linear-gradient(
+          90deg,
+          rgb(255, 255, 255) 0%,
+          rgba(255, 255, 255, 0.31) 50%,
+          rgba(255, 0, 0, 0) 100%
+        );
+        transition: 0.7s ease-in-out;
+    }
+
+    .cube-dock .bulb-light-top {
+        opacity: 0;
+        position: absolute;
+        width: 175px;
+        height: 165px;
+        translate: 249px 44px 83px;
+        box-sizing: border-box;
+        background: linear-gradient(
+          90deg,
+          rgb(255, 255, 255) 0%,
+          rgba(255, 255, 255, 0.31) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        transition: 0.7s ease-in-out;
+    }
+
+    .cube-dock .bulb-light--on {
+        opacity: 0.4;
+    }
+
+    .cube-dock .light {
+        position: absolute;
+        width: 350px;
+        border-radius: 80%;
+        height: 350px;
+        background-color: rgb(255, 255, 255);
+        top: 75%;
+        left: 75%;
+        margin-top: -100%;
+        margin-left: -100%;
+        opacity: 0;
+        filter: blur(45px);
+        transition: 0.7s ease-in-out;
+    }
+
+    .cube-dock .light--on {
+        opacity: 0.3;
+    }
+
+    /* ---- Cube lamp dock (bottom left). Origin = centre of the cube scene. ---- */
+    .cube-dock {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 0;
+      z-index: 25;
+      transform-origin: 0 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cube-dock, .cube-dock * { pointer-events: none; }
+    .cube-dock .rotating-cube > div {
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cube-dock .scene {
+      position: absolute;
+      left: -125px;
+      top: -125px;
+    }
+    .cube-dock .text {
+      margin: 0;
+      color: #111;
+      font-size: 1.2rem;
+      line-height: 1.15;
+    }
+
+    /* "Find all numbers" on the grey face of the part that slides forward.
+       The face is turned 90deg in 3D, so the text is counter-rotated to read
+       left to right on screen. */
+    .cube-dock .bulb-message {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(-90deg);
+      font-family: sans-serif;
+      font-size: 1.35rem;
+      line-height: 1.15;
+      text-align: center;
+      color: #111;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .cube-dock .bulb-message--on {
+      opacity: 1;
+      transition: opacity 0.4s ease 0.5s;
+    }
+
+    /* Placeholder for the next scene */
+    .next-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      color: #fff;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+    }
+    .next-scene--on {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition: opacity 0.9s ease, visibility 0s;
+    }
+    .next-scene p {
+      margin: 0;
+      padding: 0 24px;
+      text-align: center;
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
     /* Number label that sits on the highlighted country */
     .globe-label {
       position: absolute;
@@ -330,6 +795,60 @@
     <button type="reset" class="search" id="search-btn"
             aria-label="Toggle search" aria-expanded="false"></button>
   </form>
+
+  <div class="cube-dock" id="cubeDock">
+  <div class="scene" id="scene">
+          <div class="main-cube">
+            <div class="bulb-light-top" id="top-light"></div>
+            <div class="bulb-light-left" id="left-light"></div>
+            <div class="rotating-light-bottom"></div>
+            <div class="rotating-light-back"></div>
+            <div class="side main-cube__side-top"></div>
+            <div class="side main-cube__side-front">
+              <div class="corner corner-1"></div>
+              <div class="corner corner-2"></div>
+              <div class="corner corner-3"></div>
+              <div class="corner corner-4"></div>
+              <div class="rectangle rectangle-1"></div>
+              <div class="rectangle rectangle-2"></div>
+              <div class="rectangle rectangle-3"></div>
+              <div class="rectangle rectangle-4"></div>
+              <div class="light" id="light"></div>
+            </div>
+            <div class="side main-cube__side-left">
+              <div class="corner corner-1"></div>
+              <div class="corner corner-2"></div>
+              <div class="corner corner-3"></div>
+              <div class="corner corner-4"></div>
+              <div class="rectangle rectangle-1"></div>
+              <div class="rectangle rectangle-2"></div>
+              <div class="rectangle rectangle-3"></div>
+              <div class="rectangle rectangle-4"></div>
+            </div>
+            <div class="inside hatching main-cube__inside main-cube__inside--bottom"></div>
+            <div class="inside hatching main-cube__inside main-cube__inside--back"></div>
+          </div>
+
+          <div class="rotating-cube" id="rotating-cube">
+            <div class="rotating-cube__top"></div>
+            <div class="rotating-cube__front"></div>
+            <div class="rotating-cube__bottom"></div>
+            <div class="rotating-cube__back"></div>
+            <div class="rotating-cube__left">
+              <p class="text">Click to move forward</p>
+            </div>
+          </div>
+          <div class="bulb-cube" id="bulb-cube">
+            <div class="hatching bulb-cube__top"></div>
+            <div class="hatching bulb-cube__left"></div>
+            <div class="bulb-cube__front"><div class="bulb-message" id="bulb-message">Find all numbers</div></div>
+          </div>
+        </div>
+  </div>
+
+  <div class="next-scene" id="nextScene" aria-hidden="true">
+    <p>Next scene (placeholder)</p>
+  </div>
 
   <div class="hint">Drag to rotate &middot; Scroll or pinch to zoom</div>
   <div class="message" id="message" hidden></div>
@@ -1022,6 +1541,10 @@
     const OVERLAY_MAX_PX = 2048;
 
     let activeCountry = null;
+    const foundCountries = new Set();   // countries the user has searched so far
+    let onProgress = null;              // called whenever a new country is found
+
+    const allNumbersFound = () => COUNTRIES.every((c) => foundCountries.has(c.name));
 
     function normalise(text) {
       return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -1116,6 +1639,8 @@
       if (glReady) uploadOverlay(built.canvas);
 
       activeCountry = country;
+      foundCountries.add(country.name);
+      if (onProgress) onProgress();
       overlay.target = 1;
       spinHold = true;
 
@@ -1201,6 +1726,86 @@
       });
     }
 
+    /* ---- Cube lamp ---- */
+    function initCube() {
+      const dock = document.getElementById("cubeDock");
+      const rotatingCube = document.getElementById("rotating-cube");
+      const bulbCube = document.getElementById("bulb-cube");
+      const topLight = document.getElementById("top-light");
+      const leftLight = document.getElementById("left-light");
+      const light = document.getElementById("light");
+      const message = document.getElementById("bulb-message");
+      const nextScene = document.getElementById("nextScene");
+
+      /* Projected size of the whole cube around its centre (measured from the
+         scene's 3D transform): 305 px left, 269 right, 188 up, 202 down. */
+      const BOX = { left: 305, right: 269, up: 188, down: 202 };
+      const MARGIN = 16;
+
+      let isOpen = false;
+      let leaving = false;
+
+      function layoutCube() {
+        const { width, height } = getViewportSize();
+        const boxWidth = BOX.left + BOX.right;
+        const boxHeight = BOX.up + BOX.down;
+        const widthShare = width < 700 ? 0.6 : 0.3;
+        const scale = Math.min(0.6, (width * widthShare) / boxWidth, (height * 0.4) / boxHeight);
+
+        dock.style.left = "calc(env(safe-area-inset-left, 0px) + " + (MARGIN + BOX.left * scale) + "px)";
+        dock.style.bottom = "calc(env(safe-area-inset-bottom, 0px) + " + (MARGIN + BOX.down * scale) + "px)";
+        dock.style.transform = "scale(" + scale + ")";
+      }
+
+      function setOpen(open) {
+        isOpen = open;
+        rotatingCube.classList.toggle("rotating-cube--rotated", open);
+        bulbCube.classList.toggle("bulb-cube--opened", open);
+        topLight.classList.toggle("bulb-light--on", open);
+        leftLight.classList.toggle("bulb-light--on", open);
+        light.classList.toggle("light--on", open);
+      }
+
+      /* "Find all numbers" shows only while the cube is open and numbers are missing. */
+      function updateMessage() {
+        message.classList.toggle("bulb-message--on", isOpen && !allNumbersFound());
+      }
+
+      function showNextScene() {
+        nextScene.classList.add("next-scene--on");
+        nextScene.setAttribute("aria-hidden", "false");
+      }
+
+      function onCubeClick() {
+        if (leaving) return;
+
+        if (allNumbersFound()) {
+          /* Open the cube, switch the light on, then move to the next scene. */
+          leaving = true;
+          setOpen(true);
+          updateMessage();
+          setTimeout(showNextScene, 1000);
+          return;
+        }
+
+        setOpen(!isOpen);
+        updateMessage();
+      }
+
+      rotatingCube.querySelectorAll(":scope > div").forEach((face) => {
+        face.addEventListener("click", onCubeClick);
+      });
+
+      onProgress = updateMessage;
+
+      layoutCube();
+      window.addEventListener("resize", layoutCube, { passive: true });
+      window.addEventListener("orientationchange", layoutCube, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", layoutCube, { passive: true });
+      }
+    }
+
     /* ---- Loading ---- */
     function loadImage(url) {
       return new Promise((resolve, reject) => {
@@ -1273,10 +1878,12 @@
             const c = findCountryByName(name);
             if (c) highlightCountry(c);
           },
-          clearHighlight
+          clearHighlight,
+          found: () => Array.from(foundCountries)
         };
 
         initSearch();
+        initCube();
 
         lastFrameTime = performance.now();
         requestAnimationFrame(frame);
