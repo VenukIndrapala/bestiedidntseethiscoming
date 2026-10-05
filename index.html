@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Original globe concept credit: Edan Kwan -->
+    <title>Realistic Globe</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <div class="world">
+      <div class="world-bg"></div>
+      <div class="world-globe">
+        <div class="world-globe-pole"></div>
+        <div class="world-globe-doms-container"></div>
+        <div class="world-globe-halo"></div>
+      </div>
+    </div>
+
+    <div class="hint">Drag to rotate &middot; Scroll to zoom</div>
+    <div class="message" id="message" hidden></div>
+
+    <script src="js/perspective-transform.js"></script>
+    <script src="js/globe.js"></script>
+  </body>
+</html>
