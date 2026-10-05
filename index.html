@@ -5,7 +5,7 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <title>Realistic Interactive Globe</title>
+  <title>Realistic Interactive Globe - Responsive</title>
 
   <style>
     * {
@@ -77,11 +77,13 @@
       top: 50%;
       width: 536px;
       height: 536px;
-      transform: translate3d(-50%, -50%, 0);
+      transform: translate3d(-50%, -50%, 0) scale3d(1, 1, 1);
       display: block;
       pointer-events: none;
       will-change: transform;
       contain: strict;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
     }
 
     .world-globe-halo {
@@ -97,10 +99,12 @@
       background-size: 100% 100%;
       pointer-events: none;
       opacity: 0.9;
-      transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+      transform-origin: center center;
       will-change: transform;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      contain: layout paint;
     }
 
     .hint {
@@ -114,6 +118,7 @@
       color: rgba(255, 255, 255, 0.55);
       pointer-events: none;
       z-index: 20;
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
     .message {
@@ -137,9 +142,56 @@
     }
 
     @media (max-width: 600px) {
+      /*
+        Keep the complete globe inside the shortest screen dimension.
+        This avoids oversized/cropped globes on narrow portrait phones.
+      */
+      #globeCanvas {
+        max-width: 78vw;
+        max-height: 78vw;
+        width: min(78vw, 78vh);
+        height: min(78vw, 78vh);
+      }
+
+      .world-globe-halo {
+        width: min(106vw, 106vh);
+        height: min(104vw, 104vh);
+        margin-left: calc(-1 * min(53vw, 53vh));
+        margin-top: calc(-1 * min(52vw, 52vh));
+      }
+
       .hint {
         bottom: max(12px, env(safe-area-inset-bottom));
         font-size: 10px;
+        padding-inline: 12px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      #globeCanvas {
+        width: min(74vw, 74vh);
+        height: min(74vw, 74vh);
+      }
+
+      .world-globe-halo {
+        width: min(102vw, 102vh);
+        height: min(100vw, 100vh);
+        margin-left: calc(-1 * min(51vw, 51vh));
+        margin-top: calc(-1 * min(50vw, 50vh));
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 600px) {
+      #globeCanvas {
+        width: min(70vh, 70vw);
+        height: min(70vh, 70vw);
+      }
+
+      .world-globe-halo {
+        width: min(98vh, 98vw);
+        height: min(96vh, 96vw);
+        margin-left: calc(-1 * min(49vh, 49vw));
+        margin-top: calc(-1 * min(48vh, 48vw));
       }
     }
 
@@ -660,13 +712,44 @@
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        const available =
-          Math.min(width, height) * 0.78;
+        /*
+          The globe is always square. Size it from the shortest
+          viewport dimension, so portrait phones do not stretch
+          or crop it.
+        */
+        const shortestSide =
+          Math.min(width, height);
 
-        return Math.max(
-          available / BASE_GLOBE_SIZE,
-          0.55
-        );
+        const isMobile =
+          Math.max(width, height) <= 600;
+
+        const ratio =
+          isMobile ? 0.76 : 0.78;
+
+        const available =
+          shortestSide * ratio;
+
+        /*
+          Do not force the old desktop minimum on very small
+          phones. That minimum was one of the causes of poor
+          mobile sizing.
+        */
+        const minimum =
+          isMobile ? 220 : 295;
+
+        const maximum =
+          isMobile
+            ? 460
+            : 536;
+
+        const size =
+          clamp(
+            available,
+            minimum,
+            maximum
+          );
+
+        return size / BASE_GLOBE_SIZE;
       }
 
       function resizeCanvas() {
@@ -675,33 +758,49 @@
           config.maxDpr
         );
 
-        const cssWidth =
-          Math.max(1, Math.round(
-            window.innerWidth
-          ));
+        /*
+          IMPORTANT:
+          The canvas represents a square globe, not the whole
+          viewport. The old version used viewport width/height
+          here, which made the WebGL projection rectangular on
+          portrait phones and visibly distorted the globe.
+        */
+        const scale =
+          getResponsiveScale();
 
-        const cssHeight =
-          Math.max(1, Math.round(
-            window.innerHeight
-          ));
+        const zoomPower =
+          Math.pow(config.zoom, 1.5);
 
-        const pixelWidth =
-          Math.max(1, Math.round(
-            cssWidth * dpr
-          ));
+        const globeZoom =
+          1 + zoomPower * 3;
 
-        const pixelHeight =
-          Math.max(1, Math.round(
-            cssHeight * dpr
-          ));
+        const cssSize =
+          BASE_GLOBE_SIZE *
+          scale *
+          globeZoom;
 
+        const pixelSize =
+          Math.max(
+            1,
+            Math.round(cssSize * dpr)
+          );
+
+        /*
+          Keep the internal WebGL framebuffer square.
+        */
         if (
-          canvas.width !== pixelWidth ||
-          canvas.height !== pixelHeight
+          canvas.width !== pixelSize ||
+          canvas.height !== pixelSize
         ) {
-          canvas.width = pixelWidth;
-          canvas.height = pixelHeight;
+          canvas.width = pixelSize;
+          canvas.height = pixelSize;
         }
+
+        canvas.style.width =
+          cssSize + "px";
+
+        canvas.style.height =
+          cssSize + "px";
 
         gl.viewport(
           0,
@@ -730,6 +829,11 @@
         if (!gl || !program) return;
 
         /*
+          Do not resize the WebGL framebuffer here.
+          Resizing is handled by scheduleResize()/resizeCanvas()
+          only when the viewport or zoom changes. This avoids
+          expensive mobile framebuffer reallocations every frame.
+
           Time-based rotation makes the animation independent
           of monitor refresh rate. A 60 Hz and 120 Hz display
           therefore get the same actual globe speed.
@@ -756,19 +860,37 @@
         const globeZoom =
           1 + zoomPower * 3;
 
-        const finalScale =
-          responsiveScale * globeZoom;
-
         /*
-          Canvas itself stays centered. Only its scale changes,
-          avoiding repeated layout calculations.
+          Keep both the globe and halo square/proportional.
+          The canvas has its own responsive CSS size; the halo
+          is scaled by the same zoom factor so it never looks
+          oversized on mobile.
         */
+        const baseSize =
+          BASE_GLOBE_SIZE *
+          responsiveScale;
+
+        const globeSize =
+          baseSize * globeZoom;
+
+        canvas.style.width =
+          globeSize + "px";
+
+        canvas.style.height =
+          globeSize + "px";
+
         canvas.style.transform =
-          "translate3d(-50%, -50%, 0) " +
+          "translate3d(-50%, -50%, 0)";
+
+        const haloScale =
+          globeSize / BASE_GLOBE_SIZE;
+
+        globeHalo.style.transform =
+          "translate3d(0,0,0) " +
           "scale3d(" +
-          finalScale +
+          haloScale +
           "," +
-          finalScale +
+          haloScale +
           ",1)";
 
         const bgZoom =
@@ -787,12 +909,12 @@
           config.isHaloVisible ? "block" : "none";
 
         /*
-          Camera distance is fixed while the globe is scaled
-          through CSS. This keeps the projection stable and
-          prevents geometry from jumping during zoom.
+          The drawing buffer is always square, matching the
+          physical globe. Therefore the projection must use
+          an aspect ratio of 1 rather than the phone's portrait
+          viewport ratio.
         */
-        const aspect =
-          canvas.width / canvas.height;
+        const aspect = 1;
 
         const projection =
           perspectiveMatrix(
@@ -1086,13 +1208,18 @@
       function onWheel(event) {
         event.preventDefault();
 
-        config.zoom =
+        const nextZoom =
           clamp(
             config.zoom -
             event.deltaY * 0.001,
             0,
             1
           );
+
+        if (nextZoom !== config.zoom) {
+          config.zoom = nextZoom;
+          scheduleResize();
+        }
       }
 
       function onDoubleClick() {
@@ -1100,6 +1227,8 @@
           config.zoom > 0.4
             ? 0
             : 0.55;
+
+        scheduleResize();
       }
 
       /* =========================================================
