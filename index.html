@@ -1740,7 +1740,6 @@
       /* Projected size of the whole cube around its centre (measured from the
          scene's 3D transform): 305 px left, 269 right, 188 up, 202 down. */
       const BOX = { left: 305, right: 269, up: 188, down: 202 };
-      const MARGIN = 0; // flush with the left edge
       const LIFT = 18;  // raised slightly above the bottom edge
 
       let isOpen = false;
@@ -1753,7 +1752,9 @@
         const widthShare = width < 700 ? 0.34 : 0.18;
         const scale = Math.min(0.34, (width * widthShare) / boxWidth, (height * 0.24) / boxHeight);
 
-        dock.style.left = "calc(env(safe-area-inset-left, 0px) + " + (MARGIN + BOX.left * scale) + "px)";
+        /* Centred under the globe: the cube's bounding box is centred on the
+           screen (its centre point sits (left - right) / 2 to the right of centre). */
+        dock.style.left = "calc(50% + " + (((BOX.left - BOX.right) / 2) * scale) + "px)";
         dock.style.bottom = "calc(env(safe-area-inset-bottom, 0px) + " + (LIFT + BOX.down * scale) + "px)";
         dock.style.transform = "scale(" + scale + ")";
       }
