@@ -984,7 +984,6 @@
         name: "Norway",
         aliases: ["norway", "norge", "noreg"],
         view: { lat: 64, lng: 14 },   // where the globe is centred
-        zoom: 0.3,                    // "slight" zoom (about 1.5x)
         label: { text: "5", lat: 64.24, lng: 13.91 }, // centroid of mainland Norway
         polygons: NORWAY_POLYGONS
       },
@@ -992,7 +991,6 @@
         name: "Argentina",
         aliases: ["argentina", "argentine republic", "republica argentina"],
         view: { lat: -38, lng: -64 },
-        zoom: 0.3,
         label: { text: "3", lat: -35.18, lng: -65.16 }, // centroid of mainland Argentina
         polygons: ARGENTINA_POLYGONS
       },
@@ -1000,7 +998,6 @@
         name: "Thailand",
         aliases: ["thailand", "kingdom of thailand", "prathet thai", "siam"],
         view: { lat: 13, lng: 101 },
-        zoom: 0.45,                   // smaller country, so zoom in a bit more
         labelScale: 0.6,              // number size relative to the default
         label: { text: "4", lat: 15.13, lng: 101.0 }, // centroid of mainland Thailand
         polygons: THAILAND_POLYGONS
@@ -1009,7 +1006,6 @@
         name: "Israel",
         aliases: ["israel", "state of israel", "yisrael"],
         view: { lat: 31.4, lng: 35 },
-        zoom: 0.85,                   // very small on the globe, so zoom in further
         labelScale: 0.2,
         lineScale: 0.4,               // thinner outline so it doesn't swamp the country
         label: { text: "6", lat: 30.91, lng: 34.85 }, // most interior point of the outline
@@ -1030,7 +1026,6 @@
     const OVERLAY_MAX_PX = 2048;
 
     let activeCountry = null;
-    let zoomBeforeSearch = 0;
 
     function normalise(text) {
       return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -1124,7 +1119,6 @@
       overlay.rect = built.rect;
       if (glReady) uploadOverlay(built.canvas);
 
-      if (!activeCountry) zoomBeforeSearch = zoomTarget;
       activeCountry = country;
       overlay.target = 1;
       spinHold = true;
@@ -1136,16 +1130,13 @@
       label.target = 1;
       labelEl.textContent = country.label.text;
 
-      goTo(country.view.lat * LAT_TO_MESH, country.view.lng, country.zoom, () => {
+      goTo(country.view.lat * LAT_TO_MESH, country.view.lng, undefined, () => {
         if (activeCountry === country) label.popStart = performance.now();
       });
     }
 
     function clearHighlight() {
       if (!activeCountry) return;
-
-      /* Restore the previous zoom unless the user has changed it since. */
-      if (Math.abs(zoomTarget - activeCountry.zoom) < 0.001) zoomTarget = zoomBeforeSearch;
 
       activeCountry = null;
       overlay.target = 0;
