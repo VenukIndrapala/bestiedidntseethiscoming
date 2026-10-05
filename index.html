@@ -102,6 +102,31 @@
     .world-globe-halo[hidden] { display: none; }
 
 
+    /* Number label that sits on the highlighted country */
+    .globe-label {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: none;
+      margin: 0;
+      padding: 0;
+      font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      opacity: 0;
+      text-shadow:
+        0 0 4px rgba(255, 255, 255, 0.95),
+        0 0 14px rgba(127, 212, 255, 0.95),
+        0 0 34px rgba(127, 212, 255, 0.65);
+      z-index: 15;
+    }
+
     /* ---------- Search bar (from animated-search-bar_v1, page background removed) ----------
        The bar's right end is anchored to the top-right corner; it expands to the left. */
     #content {
@@ -294,6 +319,7 @@
     <div class="world-globe-pole" id="globePole"></div>
     <canvas id="globeCanvas" aria-label="Interactive globe"></canvas>
     <img class="world-globe-halo" id="globeHalo" alt="" aria-hidden="true" draggable="false" hidden>
+    <div class="globe-label" id="globeLabel" aria-hidden="true"></div>
   </div>
 
   <form id="content" role="search" autocomplete="off">
@@ -344,6 +370,7 @@
     const globePole = document.getElementById("globePole");
     const canvas = document.getElementById("globeCanvas");
     const globeHalo = document.getElementById("globeHalo");
+    const labelEl = document.getElementById("globeLabel");
     const message = document.getElementById("message");
 
     /* ---- State ---- */
@@ -359,10 +386,13 @@
     let needsResize = true;
     let lastFrameTime = performance.now();
     let tween = null;
+    let currentScale = 1; // globe scale (fit * zoom), updated in resizeCanvas
     let spinHold = false; // true while a searched country is highlighted
 
     /* Outline overlay state (country search) */
     const overlay = { canvas: null, rect: [0, 0, 1, 1], alpha: 0, target: 0 };
+    /* Number label: popStart < 0 means it has not popped in yet. */
+    const label = { lat: 0, lng: 0, fade: 0, target: 0, popStart: -1 };
 
     let isPointerDown = false;
     const pointers = new Map();
@@ -635,6 +665,7 @@
 
     function resizeCanvas() {
       const scale = getTotalScale();
+      currentScale = scale;
       const cssSize = BASE_GLOBE_SIZE * scale * EXTENT;
       const dpr = Math.min(window.devicePixelRatio || 1, config.maxDpr);
 
@@ -692,7 +723,11 @@
       const e = easeInOutSine(p);
       config.lat = tween.lat + tween.dLat * e;
       config.lng = clampLng(tween.lng + tween.dLng * e);
-      if (p >= 1) tween = null;
+      if (p >= 1) {
+        const done = tween.onDone;
+        tween = null;
+        if (done) done();
+      }
     }
 
     function updateZoom(dt) {
@@ -711,6 +746,74 @@
       if (Math.abs(overlay.target - overlay.alpha) < 0.01) overlay.alpha = overlay.target;
     }
 
+    /* Same maths as the vertex shader: where a map point sits on screen,
+       in globe radii from the globe centre (x right, y down), plus its depth. */
+    function projectToScreen(lat, lng) {
+      const phi = ((lng + 180) / 360) * Math.PI * 2;
+      const v = (90 - lat) / 180;
+      const theta = (POLE_GAP + v * (1 - 2 * POLE_GAP)) * Math.PI;
+      const sinT = Math.sin(theta);
+      const x = -Math.cos(phi) * sinT;
+      const y = -Math.cos(theta);
+      const z = Math.sin(phi) * sinT;
+
+      const rY = degToRad(clampLng(config.lng) - 270);
+      const rX = degToRad(config.lat);
+      const sY = Math.sin(rY), cY = Math.cos(rY);
+      const sX = Math.sin(-rX), cX = Math.cos(-rX);
+
+      const x0 = x * cY - z * sY;
+      let z0 = z * cY + x * sY;
+      const y0 = y * cX - z0 * sX;
+      z0 = z0 * cX + y * sX;
+
+      const k = 1 + z0 * PERSPECTIVE;
+      return { x: x0 * k, y: y0 * k, z: z0 };
+    }
+
+    const easeOutBack = (t) => {
+      const c1 = 1.70158, c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+
+    function updateLabel(dt, now) {
+      if (label.target === 1 && labelEl.style.display !== "block") {
+        labelEl.style.display = "block";
+      }
+
+      const diff = label.target - label.fade;
+      if (diff !== 0) {
+        label.fade += diff * (1 - Math.exp(-dt * 12));
+        if (Math.abs(label.target - label.fade) < 0.01) label.fade = label.target;
+      }
+
+      if (label.fade === 0 && label.target === 0) {
+        if (labelEl.style.display !== "none") labelEl.style.display = "none";
+        label.popStart = -1;
+        return;
+      }
+
+      if (label.popStart < 0) {            // waiting for the globe to arrive
+        labelEl.style.opacity = "0";
+        return;
+      }
+
+      const p = clamp((now - label.popStart) / 650, 0, 1);
+      const pop = Math.max(0, easeOutBack(p));  // 0 -> slight overshoot -> 1
+
+      const pos = projectToScreen(label.lat, label.lng);
+      /* Fade out as the country turns towards the globe's edge / far side. */
+      const facing = clamp((pos.z - 0.1) / 0.3, 0, 1);
+
+      const radius = (BASE_GLOBE_SIZE / 2) * currentScale;
+      const pulse = 0.92 + 0.08 * Math.sin(now * 0.004);
+
+      labelEl.style.opacity = String(label.fade * facing * pulse);
+      labelEl.style.transform =
+        "translate3d(" + (pos.x * radius) + "px," + (pos.y * radius) + "px,0) " +
+        "translate(-50%,-50%) scale(" + (pop * currentScale) + ")";
+    }
+
     function frame(now) {
       const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
       lastFrameTime = now;
@@ -726,11 +829,12 @@
         }
         render(dt, now);
       }
+      updateLabel(dt, now);
       requestAnimationFrame(frame);
     }
 
     /* ---- Public navigation helper ---- */
-    function goTo(lat, lng, zoomTo) {
+    function goTo(lat, lng, zoomTo, onArrive) {
       if (typeof zoomTo === "number") zoomTarget = clamp(zoomTo, 0, 1);
       const targetLng = clampLng(lng);
       let dLng = targetLng - config.lng;
@@ -745,7 +849,8 @@
         lat: config.lat,
         lng: config.lng,
         dLat,
-        dLng
+        dLng,
+        onDone: onArrive || null
       };
     }
 
@@ -862,6 +967,7 @@
         aliases: ["norway", "norge", "noreg"],
         view: { lat: 64, lng: 14 },   // where the globe is centred
         zoom: 0.3,                    // "slight" zoom (about 1.5x)
+        label: { text: "5", lat: 64.24, lng: 13.91 }, // centroid of mainland Norway
         polygons: NORWAY_POLYGONS
       }
     ];
@@ -978,7 +1084,15 @@
       overlay.target = 1;
       spinHold = true;
 
-      goTo(country.view.lat * LAT_TO_MESH, country.view.lng, country.zoom);
+      label.lat = country.label.lat;
+      label.lng = country.label.lng;
+      label.popStart = -1;               // hidden until the globe arrives
+      label.target = 1;
+      labelEl.textContent = country.label.text;
+
+      goTo(country.view.lat * LAT_TO_MESH, country.view.lng, country.zoom, () => {
+        if (activeCountry === country) label.popStart = performance.now();
+      });
     }
 
     function clearHighlight() {
@@ -989,6 +1103,7 @@
 
       activeCountry = null;
       overlay.target = 0;
+      label.target = 0;
       spinHold = false;
     }
 
