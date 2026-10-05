@@ -983,7 +983,7 @@
       {
         name: "Norway",
         aliases: ["norway", "norge", "noreg"],
-        view: { lat: 64, lng: 14 },   // where the globe is centred
+        view: { lat: 64, lng: 14 },   // reference latitude for the outline's stroke shape
         label: { text: "5", lat: 64.24, lng: 13.91 }, // centroid of mainland Norway
         polygons: NORWAY_POLYGONS
       },
@@ -1012,10 +1012,6 @@
         polygons: ISRAEL_POLYGONS
       }
     ];
-
-    /* The texture's full height is mapped between 5% and 95% of the sphere,
-       so a map latitude sits at 0.9x that latitude on the mesh. */
-    const LAT_TO_MESH = 1 - 2 * POLE_GAP;
 
     /* Calibration if the outline ever sits slightly off the texture's coastlines. */
     const OVERLAY_LNG_OFFSET = 0;   // degrees, + = east
@@ -1126,13 +1122,9 @@
       label.lat = country.label.lat;
       label.lng = country.label.lng;
       label.scale = country.labelScale || 1;
-      label.popStart = -1;               // hidden until the globe arrives
       label.target = 1;
+      label.popStart = performance.now();   // bounce the number in straight away
       labelEl.textContent = country.label.text;
-
-      goTo(country.view.lat * LAT_TO_MESH, country.view.lng, undefined, () => {
-        if (activeCountry === country) label.popStart = performance.now();
-      });
     }
 
     function clearHighlight() {
