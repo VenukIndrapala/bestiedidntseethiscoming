@@ -18,6 +18,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
+      min-height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -34,6 +35,9 @@
     .world {
       position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100%;
       overflow: hidden;
       cursor: grab;
       touch-action: none;
@@ -90,21 +94,46 @@
       position: absolute;
       left: 50%;
       top: 50%;
+
+      /*
+        Native image is 730 x 715. The width is driven by the
+        globe's computed size and the image keeps its intrinsic
+        aspect ratio automatically.
+      */
       width: 730px;
-      height: 715px;
-      margin-left: -365px;
-      margin-top: -357.5px;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: 100% 100%;
+      height: auto;
+
+      margin: 0;
+
+      display: block;
       pointer-events: none;
-      opacity: 0.9;
-      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+      user-select: none;
+      -webkit-user-select: none;
+
+      object-fit: contain;
+      object-position: center;
+
+      /*
+        The JS uses the exact same uniform scale as the globe.
+        This prevents portrait phones from changing the halo's
+        proportions.
+      */
+      transform:
+        translate3d(-50%, -50%, 0)
+        scale3d(1, 1, 1);
       transform-origin: center center;
+
+      opacity: 0.9;
+
       will-change: transform;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+
       contain: layout paint;
+    }
+
+    .world-globe-halo[hidden] {
+      display: none;
     }
 
     .hint {
@@ -143,23 +172,11 @@
 
     @media (max-width: 600px) {
       /*
-        Keep the complete globe inside the shortest screen dimension.
-        This avoids oversized/cropped globes on narrow portrait phones.
+        No independent canvas/halo dimensions here.
+        JavaScript calculates one square globe size from the
+        shortest visible viewport side, then scales the halo
+        from that same size.
       */
-      #globeCanvas {
-        max-width: 78vw;
-        max-height: 78vw;
-        width: min(78vw, 78vh);
-        height: min(78vw, 78vh);
-      }
-
-      .world-globe-halo {
-        width: min(106vw, 106vh);
-        height: min(104vw, 104vh);
-        margin-left: calc(-1 * min(53vw, 53vh));
-        margin-top: calc(-1 * min(52vw, 52vh));
-      }
-
       .hint {
         bottom: max(12px, env(safe-area-inset-bottom));
         font-size: 10px;
@@ -168,24 +185,16 @@
     }
 
     @media (max-width: 380px) {
-      #globeCanvas {
-        width: min(74vw, 74vh);
-        height: min(74vw, 74vh);
-      }
-
-      .world-globe-halo {
-        width: min(102vw, 102vh);
-        height: min(100vw, 100vh);
-        margin-left: calc(-1 * min(51vw, 51vh));
-        margin-top: calc(-1 * min(50vw, 50vh));
+      .hint {
+        font-size: 9px;
       }
     }
 
     @media (orientation: landscape) and (max-height: 600px) {
-      #globeCanvas {
-        width: min(70vh, 70vw);
-        height: min(70vh, 70vw);
+      .hint {
+        font-size: 9px;
       }
+    }
 
       .world-globe-halo {
         width: min(98vh, 98vw);
@@ -211,7 +220,14 @@
 
     <canvas id="globeCanvas" aria-label="Interactive globe"></canvas>
 
-    <div class="world-globe-halo" id="globeHalo"></div>
+    <img
+      class="world-globe-halo"
+      id="globeHalo"
+      src="assets/globe_halo.png"
+      alt=""
+      aria-hidden="true"
+      draggable="false"
+    >
   </div>
 
   <div class="hint">Drag to rotate &middot; Scroll to zoom</div>
@@ -708,14 +724,41 @@
          RESPONSIVE SIZING
          ========================================================= */
 
+      function getViewportSize() {
+        /*
+          visualViewport is useful on mobile because browser
+          controls can temporarily change the visible height.
+          Fall back to innerWidth/innerHeight everywhere else.
+        */
+        const vv = window.visualViewport;
+
+        const width =
+          vv && vv.width
+            ? vv.width
+            : window.innerWidth;
+
+        const height =
+          vv && vv.height
+            ? vv.height
+            : window.innerHeight;
+
+        return {
+          width,
+          height
+        };
+      }
+
       function getResponsiveScale() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const viewport =
+          getViewportSize();
+
+        const width = viewport.width;
+        const height = viewport.height;
 
         /*
-          The globe is always square. Size it from the shortest
-          viewport dimension, so portrait phones do not stretch
-          or crop it.
+          The globe must always remain a perfect circle.
+          Its diameter is based only on the shortest visible
+          side of the device.
         */
         const shortestSide =
           Math.min(width, height);
@@ -723,19 +766,25 @@
         const isMobile =
           Math.max(width, height) <= 600;
 
+        /*
+          74% on phones gives enough breathing room for the
+          halo and avoids clipping on narrow portrait displays.
+        */
         const ratio =
-          isMobile ? 0.76 : 0.78;
+          isMobile ? 0.74 : 0.78;
 
         const available =
           shortestSide * ratio;
 
         /*
-          Do not force the old desktop minimum on very small
-          phones. That minimum was one of the causes of poor
-          mobile sizing.
+          Remove the old hard minimum on phones. A hard
+          minimum can be larger than a small phone's usable
+          width and therefore cause cropping.
         */
         const minimum =
-          isMobile ? 220 : 295;
+          isMobile
+            ? 170
+            : 295;
 
         const maximum =
           isMobile
@@ -752,20 +801,8 @@
         return size / BASE_GLOBE_SIZE;
       }
 
-      function resizeCanvas() {
-        const dpr = Math.min(
-          window.devicePixelRatio || 1,
-          config.maxDpr
-        );
-
-        /*
-          IMPORTANT:
-          The canvas represents a square globe, not the whole
-          viewport. The old version used viewport width/height
-          here, which made the WebGL projection rectangular on
-          portrait phones and visibly distorted the globe.
-        */
-        const scale =
+      function getGlobeCssSize() {
+        const responsiveScale =
           getResponsiveScale();
 
         const zoomPower =
@@ -774,10 +811,25 @@
         const globeZoom =
           1 + zoomPower * 3;
 
-        const cssSize =
+        return (
           BASE_GLOBE_SIZE *
-          scale *
-          globeZoom;
+          responsiveScale *
+          globeZoom
+        );
+      }
+
+      function resizeCanvas() {
+        const dpr = Math.min(
+          window.devicePixelRatio || 1,
+          config.maxDpr
+        );
+
+        /*
+          The WebGL drawing surface is always square because
+          it represents a spherical object.
+        */
+        const cssSize =
+          getGlobeCssSize();
 
         const pixelSize =
           Math.max(
@@ -785,9 +837,6 @@
             Math.round(cssSize * dpr)
           );
 
-        /*
-          Keep the internal WebGL framebuffer square.
-        */
         if (
           canvas.width !== pixelSize ||
           canvas.height !== pixelSize
@@ -801,6 +850,24 @@
 
         canvas.style.height =
           cssSize + "px";
+
+        /*
+          The halo is kept at its native 730 x 715 ratio and
+          scaled uniformly by the same factor as the globe.
+          At the base size:
+              globe = 536 px
+              halo  = 730 x 715 px
+        */
+        const globeScale =
+          cssSize / BASE_GLOBE_SIZE;
+
+        globeHalo.style.transform =
+          "translate3d(-50%, -50%, 0) " +
+          "scale3d(" +
+          globeScale +
+          "," +
+          globeScale +
+          ",1)";
 
         gl.viewport(
           0,
@@ -850,48 +917,6 @@
               deltaSeconds
             );
         }
-
-        const responsiveScale =
-          getResponsiveScale();
-
-        const zoomPower =
-          Math.pow(config.zoom, 1.5);
-
-        const globeZoom =
-          1 + zoomPower * 3;
-
-        /*
-          Keep both the globe and halo square/proportional.
-          The canvas has its own responsive CSS size; the halo
-          is scaled by the same zoom factor so it never looks
-          oversized on mobile.
-        */
-        const baseSize =
-          BASE_GLOBE_SIZE *
-          responsiveScale;
-
-        const globeSize =
-          baseSize * globeZoom;
-
-        canvas.style.width =
-          globeSize + "px";
-
-        canvas.style.height =
-          globeSize + "px";
-
-        canvas.style.transform =
-          "translate3d(-50%, -50%, 0)";
-
-        const haloScale =
-          globeSize / BASE_GLOBE_SIZE;
-
-        globeHalo.style.transform =
-          "translate3d(0,0,0) " +
-          "scale3d(" +
-          haloScale +
-          "," +
-          haloScale +
-          ",1)";
 
         const bgZoom =
           1 +
@@ -1301,10 +1326,10 @@
           }
 
           if (haloImage) {
-            globeHalo.style.backgroundImage =
-              `url("${SOURCES.halo}")`;
+            globeHalo.hidden = false;
+            globeHalo.src = SOURCES.halo;
           } else {
-            globeHalo.style.display = "none";
+            globeHalo.hidden = true;
           }
 
           initialiseWebGL(diffuseImage);
@@ -1369,6 +1394,14 @@
             { passive: true }
           );
 
+          if (window.visualViewport) {
+            window.visualViewport.addEventListener(
+              "resize",
+              scheduleResize,
+              { passive: true }
+            );
+          }
+
           /*
             Public API retained for future use.
           */
@@ -1393,7 +1426,7 @@
             "Make sure the repository contains:<br><br>" +
             "<code>assets/globe_diffuse.jpg</code><br>" +
             "<code>assets/globe_bg.jpg</code><br>" +
-            "<code>assets/globe_halo.png</code><br><br>" +
+            "<code>assets/globe_halo.png</code> (optional)<br><br>" +
             "Also make sure the browser supports WebGL."
           );
         }
