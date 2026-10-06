@@ -1,0 +1,77 @@
+/* Additions for the numbered toys and the next-game placeholder.
+   Load this after claw-machine.css. */
+
+/* ---- Numbers on toys ---- */
+.toy-number {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  z-index: 1; /* above the toy sprite (::after) */
+  transform: translate(-50%, -50%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px/1 monospace;
+  color: var(--brown);
+  background: #fff;
+  border: 2px solid var(--brown);
+  border-radius: 3px;
+}
+
+/* Wrong collection: shake and flash the collection box */
+@keyframes collection-error {
+  0%, 100% { transform: translateX(0); background-color: transparent; }
+  15% { transform: translateX(-8px); background-color: rgba(255, 95, 95, 0.45); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-6px); background-color: rgba(255, 95, 95, 0.35); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-3px); }
+}
+
+.collection-box.error {
+  animation: collection-error 0.6s ease;
+}
+
+/* Numbered toy returning to the machine */
+@keyframes toy-respawn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.toy.respawn {
+  animation: toy-respawn 0.5s ease-out;
+}
+
+/* ---- Placeholder for the next game ---- */
+.next-game {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: #fff;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+}
+
+.next-game--on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.9s ease, visibility 0s;
+}
+
+.next-game p {
+  margin: 0;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+}
