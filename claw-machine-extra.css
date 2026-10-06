@@ -1,4 +1,4 @@
-/* Additions for the numbered toys and the next-game placeholder.
+/* Additions for the numbered toys, the next-game overlay and the letter scene.
    Load this after claw-machine.css. */
 
 /* ---- Numbers on toys ---- */
@@ -45,16 +45,12 @@
   animation: toy-respawn 0.5s ease-out;
 }
 
-/* ---- Placeholder for the next game ---- */
+/* ---- Next-game overlay (holds the letter scene) ---- */
 .next-game {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  color: #fff;
+  background: #fff;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -68,10 +64,195 @@
   transition: opacity 0.9s ease, visibility 0s;
 }
 
-.next-game p {
+/* =====================================================================
+   Letter scene (from valentine-confession.css)
+   Everything is scoped under .letter-scene, and the base classes carry a
+   "vc-" prefix, so nothing here can touch the claw machine styles.
+   ===================================================================== */
+
+.letter-scene,
+.letter-scene * {
+  box-sizing: border-box;
+}
+
+.letter-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  color: #000;
+}
+
+.letter-scene h1,
+.letter-scene p {
+  font-family: "Quicksand";
+  font-optical-sizing: auto;
+}
+
+.letter-scene h1 {
+  font-weight: 200;
+  margin: 0.67em 0;
+}
+
+.letter-scene p {
+  margin: 1em 0;
+}
+
+.letter-scene .vc-instruction {
+  position: absolute;
   margin: 0;
-  padding: 0 24px;
+  font-size: 1.6rem;
+  color: rgba(255, 0, 0, 0.554);
+  top: 36%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.letter-scene .vc-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.letter-scene .vc-heart {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   text-align: center;
-  font-size: 1.4rem;
-  letter-spacing: 0.08em;
+  transform: translate(-50%, -50%);
+  transition: transform 2s;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.letter-scene .vc-heart > img {
+  width: 50px;
+  height: auto;
+
+  animation-name: vc-beat;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+}
+
+.letter-scene .vc-message {
+  padding: 25px;
+  background-color: #eee;
+  font-family: "Quicksand", serif;
+  font-optical-sizing: auto;
+  font-size: clamp(16px, 10vw, 17px);
+  text-align: justify;
+  line-height: 1.5em;
+  width: 80%;
+  max-width: 550px;
+  height: 78%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+
+  animation-name: vc-openmsg;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-play-state: paused;
+  animation-fill-mode: forwards;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  border-radius: 5px;
+  overflow: scroll;
+  scrollbar-width: none;
+}
+
+.letter-scene .vc-message .sincere {
+  text-align: left;
+  font-family: "Cinzel, serif";
+  font-size: 14px;
+  line-height: 1.2em;
+}
+
+.letter-scene .vc-message .sincere p {
+  margin: 0;
+}
+
+@keyframes vc-beat {
+  0%   { width: 50px; }
+  25%  { width: 58px; }
+  30%  { width: 50px; }
+  50%  { width: 45px; }
+  60%  { width: 50px; }
+  75%  { width: 58px; }
+  100% { width: 50px; }
+}
+
+@keyframes vc-openmsg {
+  0% {
+    height: 0px;
+    padding: 0px 20px;
+  }
+  100% {
+    height: 75%;
+    padding: 20px 20px;
+  }
+}
+
+@keyframes vc-heartmove {
+  0% {
+    top: 50%;
+  }
+  100% {
+    top: 85%;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* State classes toggled by letter-scene.js (order matters, same as the original) */
+.letter-scene .openNor {
+  animation-direction: normal;
+  animation-play-state: running;
+}
+
+.letter-scene .closeNor {
+  animation-direction: reverse;
+  animation-play-state: running;
+}
+
+.letter-scene .no-anim {
+  animation: none;
+}
+
+.letter-scene .closed {
+  height: 0px;
+  padding: 0px 20px;
+}
+
+.letter-scene .openHer {
+  animation-name: vc-heartmove;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-play-state: running;
+  animation-fill-mode: forwards;
+}
+
+.letter-scene .closeHer {
+  animation-name: vc-heartmove;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-play-state: running;
+  animation-direction: reverse;
+  animation-fill-mode: forwards;
+}
+
+.letter-scene .beating > img {
+  animation-name: vc-beat;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+}
+
+.letter-scene .openedHer {
+  top: 85%;
+  transform: translate(-50%, 0);
 }
