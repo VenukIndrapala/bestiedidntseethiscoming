@@ -3,13 +3,18 @@ const elements = {
   box: document.querySelector('.box'),
   collectionBox: document.querySelector('.collection-box'),
   collectionArrow: document.querySelector('.collection-arrow'),
+  nextGame: document.querySelector('.next-game'),
   toys: [],
 }
 
 const settings = {
   targetToy: null,
   collectedNumber: 0,
+  sequence: [], // numbered toys collected correctly so far
+  completed: false,
 }
+
+const NUMBER_ORDER = [5, 3, 4, 6]
 
 const m = 2
 const toys = {
@@ -236,6 +241,15 @@ class Toy extends WorldObject {
     this.el.addEventListener('click', () => this.collectToy(toy))
     elements.toys.push(this)
   }
+  setNumber(n) {
+    this.number = n
+    this.el.appendChild(
+      Object.assign(document.createElement('span'), {
+        className: 'toy-number',
+        textContent: n,
+      }),
+    )
+  }
   collectToy(toy) {
     toy.el.classList.remove('selected')
     toy.x = machineWidth / 2 - toy.w / 2
@@ -246,14 +260,17 @@ class Toy extends WorldObject {
     toy.el.classList.add('display')
     elements.clawMachine.classList.add('show-overlay')
     settings.collectedNumber++
-    elements.collectionBox.appendChild(
+    toy.collectionEl = elements.collectionBox.appendChild(
       Object.assign(document.createElement('div'), {
         className: `toy-wrapper ${
           settings.collectedNumber > 6 ? 'squeeze-in' : ''
         }`,
-        innerHTML: `<div class="toy pix ${toy.toyType}"></div>`,
+        innerHTML: `<div class="toy pix ${toy.toyType}">${
+          toy.number ? `<span class="toy-number">${toy.number}</span>` : ''
+        }</div>`,
       }),
     )
+    checkSequence(toy)
     setTimeout(() => {
       elements.clawMachine.classList.remove('show-overlay')
       if (!document.querySelector('.selected'))
@@ -348,6 +365,68 @@ new Array(12).fill('').forEach((_, i) => {
   if (i === 8) return
   new Toy({ index: i })
 })
+
+//* numbered toys + sequence *//
+
+// attach the numbers 5, 3, 4, 6 to four random toys
+const shuffledToys = [...elements.toys].sort(() => 0.5 - Math.random())
+const shuffledNumbers = [...NUMBER_ORDER].sort(() => 0.5 - Math.random())
+shuffledNumbers.forEach((n, i) => shuffledToys[i].setNumber(n))
+
+const flashCollectionBox = () => {
+  const box = elements.collectionBox
+  box.classList.remove('error')
+  void box.offsetWidth // restart the animation
+  box.classList.add('error')
+  setTimeout(() => box.classList.remove('error'), 700)
+}
+
+const returnToy = toy => {
+  if (toy.collectionEl) {
+    toy.collectionEl.remove()
+    toy.collectionEl = null
+    settings.collectedNumber--
+  }
+  toy.el.style.transition = 'none'
+  toy.el.classList.remove('display', 'grabbed', 'selected', 'respawn')
+  toy.interval = null
+  toy.x = toy.default.x
+  toy.y = toy.default.y
+  toy.z = 0
+  toy.setTransformOrigin('center')
+  toy.el.style.setProperty('--rotate-angle', '0deg')
+  void toy.el.offsetWidth
+  toy.el.style.transition = ''
+  toy.el.classList.add('respawn')
+  setTimeout(() => toy.el.classList.remove('respawn'), 600)
+}
+
+const showNextGame = () => {
+  elements.nextGame.classList.add('next-game--on')
+  elements.nextGame.setAttribute('aria-hidden', 'false')
+}
+
+const checkSequence = toy => {
+  if (settings.completed) return
+  const expected = NUMBER_ORDER[settings.sequence.length]
+
+  if (toy.number === expected) {
+    settings.sequence.push(toy)
+    if (settings.sequence.length === NUMBER_ORDER.length) {
+      settings.completed = true
+      setTimeout(showNextGame, 2300) // after the last toy lands in the box
+    }
+    return
+  }
+
+  // wrong order, or a toy with no number: reset the sequence
+  const toReturn = [...settings.sequence, ...(toy.number ? [toy] : [])]
+  settings.sequence = []
+  setTimeout(() => {
+    flashCollectionBox()
+    toReturn.forEach(returnToy)
+  }, 1900) // after the collected toy lands in the box
+}
 
 const stopHoriBtnAndActivateVertBtn = () => {
   armJoint.interval = null
